@@ -154,10 +154,11 @@ const EnhancedEligibilityTab = ({ eligibilityResult }: EnhancedEligibilityTabPro
           <div className="flex items-center space-x-3">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
             <div>
-              <h4 className="font-medium text-amber-800">Recommendation</h4>
+              <h4 className="font-medium text-amber-800">Financial Review Needed</h4>
               <p className="text-sm text-amber-700">
-                This merchant is currently not eligible for a corporate card. Please review their financials 
-                for a more detailed assessment or explore alternative credit options.
+                Currently not eligible under Payment Gateway (PG) policy. 
+                We recommend a detailed financial assessment to explore alternative credit options 
+                and understand potential pathways to eligibility.
               </p>
             </div>
           </div>
