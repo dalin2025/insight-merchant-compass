@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Info, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
+import { Info, ChevronDown, ChevronUp, Check, X, AlertTriangle } from 'lucide-react';
 import { EligibilityParameter, Policy, EligibilityResult } from '@/types/eligibility';
 
 const PolicyParameterItem = ({ parameter }: { parameter: EligibilityParameter }) => {
@@ -147,6 +147,22 @@ const EnhancedEligibilityTab = ({ eligibilityResult }: EnhancedEligibilityTabPro
           )}
         </div>
       </div>
+
+      {/* Financial review suggestion for ineligible merchants */}
+      {!eligibilityResult.isEligible && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center space-x-3">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            <div>
+              <h4 className="font-medium text-amber-800">Recommendation</h4>
+              <p className="text-sm text-amber-700">
+                This merchant is currently not eligible for a corporate card. Please review their financials 
+                for a more detailed assessment or explore alternative credit options.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
