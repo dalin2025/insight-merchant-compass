@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import {
   downloadWarningsTemplate
 } from '@/utils/merchantDataUploadUtils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileIcon } from "lucide-react";
+import { FileIcon, CheckCircle2 } from "lucide-react";
 
 interface MerchantDataUploadProps {
   savedMerchants: MerchantData[];
@@ -30,11 +31,25 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
   const [selectedMerchant, setSelectedMerchant] = useState<MerchantData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeUploadTab, setActiveUploadTab] = useState("basic");
+  const [dataSaved, setDataSaved] = useState(false);
   
   const [basicFiles, setBasicFiles] = useState<UploadedFile[]>([]);
   const [applicationFiles, setApplicationFiles] = useState<UploadedFile[]>([]);
   const [spendsFiles, setSpendsFiles] = useState<UploadedFile[]>([]);
   const [warningsFiles, setWarningsFiles] = useState<UploadedFile[]>([]);
+  
+  // Track latest uploaded file for each category
+  const [lastSavedFiles, setLastSavedFiles] = useState<{
+    basic: UploadedFile | null,
+    application: UploadedFile | null,
+    spends: UploadedFile | null,
+    warnings: UploadedFile | null
+  }>({
+    basic: null,
+    application: null,
+    spends: null,
+    warnings: null
+  });
   
   useEffect(() => {
     if (savedMerchants.length > 0) {
@@ -47,6 +62,7 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     if (!file) return;
     
     setIsLoading(true);
+    setDataSaved(false);
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
@@ -58,31 +74,31 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
           
           if (type === "basic") {
             validateAndSetMerchants(parsedData);
-            addFileToHistory(file, setBasicFiles);
+            addFileToHistory(file, setBasicFiles, type);
           } else if (type === "application") {
             validateAndUpdateApplicationStatus(parsedData);
-            addFileToHistory(file, setApplicationFiles);
+            addFileToHistory(file, setApplicationFiles, type);
           } else if (type === "spends") {
             validateAndUpdateSpendData(parsedData);
-            addFileToHistory(file, setSpendsFiles);
+            addFileToHistory(file, setSpendsFiles, type);
           } else if (type === "warnings") {
             validateAndUpdateWarningData(parsedData);
-            addFileToHistory(file, setWarningsFiles);
+            addFileToHistory(file, setWarningsFiles, type);
           }
         } 
         else if (file.name.endsWith('.csv')) {
           if (type === "basic") {
             validateAndSetMerchants(parseCSV(content));
-            addFileToHistory(file, setBasicFiles);
+            addFileToHistory(file, setBasicFiles, type);
           } else if (type === "application") {
             validateAndUpdateApplicationStatus(parseCSV(content));
-            addFileToHistory(file, setApplicationFiles);
+            addFileToHistory(file, setApplicationFiles, type);
           } else if (type === "spends") {
             validateAndUpdateSpendData(parseCSV(content, true));
-            addFileToHistory(file, setSpendsFiles);
+            addFileToHistory(file, setSpendsFiles, type);
           } else if (type === "warnings") {
             validateAndUpdateWarningData(parseCSV(content));
-            addFileToHistory(file, setWarningsFiles);
+            addFileToHistory(file, setWarningsFiles, type);
           }
         } 
         else {
@@ -105,15 +121,23 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     }
   };
   
-  const addFileToHistory = (file: File, setFilesFunction: React.Dispatch<React.SetStateAction<UploadedFile[]>>) => {
+  const addFileToHistory = (file: File, setFilesFunction: React.Dispatch<React.SetStateAction<UploadedFile[]>>, fileType: string) => {
+    const newFile = {
+      name: file.name,
+      size: file.size,
+      date: new Date()
+    };
+    
     setFilesFunction(prev => [
-      {
-        name: file.name,
-        size: file.size,
-        date: new Date()
-      },
+      newFile,
       ...prev
     ].slice(0, 5));
+    
+    // Update the current file for this type
+    setLastSavedFiles(prev => ({
+      ...prev,
+      [fileType]: newFile
+    }));
   };
   
   const formatFileSize = (bytes: number) => {
@@ -401,6 +425,7 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
   const handleSaveData = () => {
     onMerchantDataSave(uploadedMerchants);
     toast.success("Merchant data saved successfully!");
+    setDataSaved(true);
   };
 
   const FileHistory = ({ files }: { files: UploadedFile[] }) => {
@@ -425,6 +450,24 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
               </div>
             </div>
           ))}
+        </div>
+      </div>
+    );
+  };
+
+  const SavedFileInfo = ({ fileType }: { fileType: 'basic' | 'application' | 'spends' | 'warnings' }) => {
+    const file = lastSavedFiles[fileType];
+    
+    if (!file || !dataSaved) return null;
+    
+    return (
+      <div className="mt-4 p-3 bg-green-50 border border-green-100 rounded-md flex items-center gap-2">
+        <CheckCircle2 className="h-5 w-5 text-green-500" />
+        <div className="flex-1">
+          <div className="text-sm font-medium text-green-700">Data saved successfully</div>
+          <div className="text-xs text-green-600">
+            File: {file.name} • {formatFileSize(file.size)} • Saved on {file.date.toLocaleString()}
+          </div>
         </div>
       </div>
     );
@@ -470,6 +513,7 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
                 <div className="text-xs text-gray-500">
                   File must contain merchant data with at least: mid, businessCategory, pgVintage, businessType, averageMonthlyGMV, qoqGrowth, activeDays
                 </div>
+                <SavedFileInfo fileType="basic" />
                 <FileHistory files={basicFiles} />
               </div>
             </TabsContent>
@@ -499,6 +543,7 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
                 <div className="text-xs text-gray-500">
                   File must contain application data with at least: mid, status (not-started, in-progress, approved, rejected), bankComments (array)
                 </div>
+                <SavedFileInfo fileType="application" />
                 <FileHistory files={applicationFiles} />
               </div>
             </TabsContent>
@@ -528,6 +573,7 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
                 <div className="text-xs text-gray-500">
                   File must contain spend data with at least: mid, totalSpend, spendTrend (increasing, decreasing, stable, null), monthlySpends (array)
                 </div>
+                <SavedFileInfo fileType="spends" />
                 <FileHistory files={spendsFiles} />
               </div>
             </TabsContent>
@@ -557,6 +603,7 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
                 <div className="text-xs text-gray-500">
                   File must contain warning data with at least: mid, riskFlag (high, medium, low), gmvDrop, spendsDrop, internalTriggers (array)
                 </div>
+                <SavedFileInfo fileType="warnings" />
                 <FileHistory files={warningsFiles} />
               </div>
             </TabsContent>
