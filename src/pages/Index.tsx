@@ -1,22 +1,25 @@
 
 import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardHeader from "@/components/DashboardHeader";
 import TabNavigation from "@/components/TabNavigation";
-import EligibilityTab from "@/components/EligibilityTab";
+import EnhancedEligibilityTab from "@/components/EnhancedEligibilityTab";
+import EligibilityDemo from "@/components/EligibilityDemo";
 import ApplicationStatusTab from "@/components/ApplicationStatusTab";
 import LiveSpendsTab from "@/components/LiveSpendsTab";
 import EarlyWarningTab from "@/components/EarlyWarningTab";
+import MerchantSearchBar from "@/components/MerchantSearchBar";
+import { evaluateEligibility } from "@/utils/eligibilityUtils";
 
 // Mock data - in real app this would come from API
 const merchantData = {
   mid: "RZPM10098765",
   name: "Tech Solutions Pvt. Ltd.",
-  eligibility: {
-    isEligible: true,
-    limit: "₹2,50,000",
-    ineligibilityReasons: [],
-  },
+  businessCategory: "technology_services",
+  pgVintage: 12,
+  businessType: "Private Limited" as const,
+  averageMonthlyGMV: 3000000, // 30 lakhs
+  qoqGrowth: 5,
+  activeDays: 180,
   application: {
     status: "in-progress" as const,
     bankComments: ["KYC documents verified successfully.", "Business profile meets bank requirements."],
@@ -51,12 +54,14 @@ const merchantData = {
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("eligibility");
+  const eligibilityResult = evaluateEligibility(merchantData);
 
   const tabs = [
     { id: "eligibility", label: "Eligibility" },
     { id: "application", label: "Application Status" },
     { id: "spends", label: "Live/Spends" },
     { id: "warnings", label: "Early Warning Signals" },
+    { id: "demo", label: "Eligibility Demo" },
   ];
 
   return (
@@ -75,6 +80,9 @@ const Index = () => {
                   <p className="text-sm text-gray-500">{merchantData.name}</p>
                 </div>
               </div>
+              <div className="w-64">
+                <MerchantSearchBar />
+              </div>
             </div>
           </div>
           
@@ -86,11 +94,7 @@ const Index = () => {
           
           <div className="p-6">
             {activeTab === "eligibility" && (
-              <EligibilityTab 
-                isEligible={merchantData.eligibility.isEligible} 
-                limit={merchantData.eligibility.limit}
-                ineligibilityReasons={merchantData.eligibility.ineligibilityReasons}
-              />
+              <EnhancedEligibilityTab eligibilityResult={eligibilityResult} />
             )}
             
             {activeTab === "application" && (
@@ -115,6 +119,10 @@ const Index = () => {
                 spendsDrop={merchantData.warnings.spendsDrop}
                 internalTriggers={merchantData.warnings.internalTriggers}
               />
+            )}
+            
+            {activeTab === "demo" && (
+              <EligibilityDemo />
             )}
           </div>
         </div>
