@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MerchantData, ApplicationStatus, SpendData, WarningSignals } from '@/types/eligibility';
+import { MerchantData } from '@/types/eligibility';
 import { evaluateEligibility } from '@/utils/eligibilityUtils';
 import EnhancedEligibilityTab from './EnhancedEligibilityTab';
 import { toast } from "sonner";
@@ -37,6 +37,30 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
   const [applicationFiles, setApplicationFiles] = useState<UploadedFile[]>([]);
   const [spendsFiles, setSpendsFiles] = useState<UploadedFile[]>([]);
   const [warningsFiles, setWarningsFiles] = useState<UploadedFile[]>([]);
+
+  // Track uploaded application data separately
+  const [applicationData, setApplicationData] = useState<Array<{
+    mid: string;
+    status: string;
+    bankComments?: string[];
+  }>>([]);
+  
+  // Track uploaded spends data separately
+  const [spendsData, setSpendData] = useState<Array<{
+    mid: string;
+    totalSpend: string;
+    spendTrend: string;
+    monthlySpends: Array<{month: string; amount: number}>;
+  }>>([]);
+  
+  // Track uploaded warnings data separately
+  const [warningsData, setWarningsData] = useState<Array<{
+    mid: string;
+    riskFlag: string;
+    gmvDrop: number;
+    spendsDrop: number;
+    internalTriggers: Array<{name: string; severity: string; details: string}>;
+  }>>([]);
   
   // Track latest uploaded file for each category
   const [lastSavedFiles, setLastSavedFiles] = useState<{
@@ -263,6 +287,11 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
 
     let updatedCount = 0;
     const updatedMerchants = [...uploadedMerchants];
+    const validAppData: Array<{
+      mid: string;
+      status: string;
+      bankComments?: string[];
+    }> = [];
 
     applicationData.forEach(data => {
       if (!data.mid) {
@@ -282,6 +311,14 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         return;
       }
 
+      const validAppItem = {
+        mid: data.mid,
+        status: data.status || "not-started",
+        bankComments: Array.isArray(data.bankComments) ? data.bankComments : []
+      };
+      
+      validAppData.push(validAppItem);
+
       updatedMerchants[merchantIndex] = {
         ...updatedMerchants[merchantIndex],
         application: {
@@ -291,6 +328,9 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
       };
       updatedCount++;
     });
+
+    // Store the valid application data separately
+    setApplicationData(validAppData);
 
     if (updatedCount > 0) {
       setUploadedMerchants(updatedMerchants);
@@ -308,6 +348,12 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
 
     let updatedCount = 0;
     const updatedMerchants = [...uploadedMerchants];
+    const validSpendsData: Array<{
+      mid: string;
+      totalSpend: string;
+      spendTrend: string;
+      monthlySpends: Array<{month: string; amount: number}>;
+    }> = [];
 
     spendsData.forEach(data => {
       if (!data.mid) {
@@ -341,16 +387,24 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         );
       }
 
+      const validSpendItem = {
+        mid: data.mid,
+        totalSpend: data.totalSpend || "₹0",
+        spendTrend: data.spendTrend || "null",
+        monthlySpends: monthlySpends
+      };
+      
+      validSpendsData.push(validSpendItem);
+
       updatedMerchants[merchantIndex] = {
         ...updatedMerchants[merchantIndex],
-        spends: {
-          totalSpend: data.totalSpend || "₹0",
-          spendTrend: data.spendTrend || "null",
-          monthlySpends: monthlySpends
-        }
+        spends: validSpendItem
       };
       updatedCount++;
     });
+
+    // Store the valid spends data separately
+    setSpendData(validSpendsData);
 
     if (updatedCount > 0) {
       setUploadedMerchants(updatedMerchants);
@@ -368,6 +422,13 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
 
     let updatedCount = 0;
     const updatedMerchants = [...uploadedMerchants];
+    const validWarningsData: Array<{
+      mid: string;
+      riskFlag: string;
+      gmvDrop: number;
+      spendsDrop: number;
+      internalTriggers: Array<{name: string; severity: string; details: string}>;
+    }> = [];
 
     warningData.forEach(data => {
       if (!data.mid) {
@@ -387,7 +448,7 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         return;
       }
 
-      let internalTriggers: Array<{name: string; severity: "high" | "medium" | "low"; details: string}> = [];
+      let internalTriggers: Array<{name: string; severity: string; details: string}> = [];
       if (data.internalTriggers) {
         if (!Array.isArray(data.internalTriggers)) {
           toast.warning(`Invalid internalTriggers format for merchant ${data.mid}`);
@@ -402,17 +463,25 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         );
       }
 
+      const validWarningItem = {
+        mid: data.mid,
+        riskFlag: data.riskFlag || "low",
+        gmvDrop: typeof data.gmvDrop === 'number' ? data.gmvDrop : 0,
+        spendsDrop: typeof data.spendsDrop === 'number' ? data.spendsDrop : 0,
+        internalTriggers: internalTriggers
+      };
+      
+      validWarningsData.push(validWarningItem);
+
       updatedMerchants[merchantIndex] = {
         ...updatedMerchants[merchantIndex],
-        warnings: {
-          riskFlag: data.riskFlag || "low",
-          gmvDrop: typeof data.gmvDrop === 'number' ? data.gmvDrop : 0,
-          spendsDrop: typeof data.spendsDrop === 'number' ? data.spendsDrop : 0,
-          internalTriggers: internalTriggers
-        }
+        warnings: validWarningItem
       };
       updatedCount++;
     });
+
+    // Store the valid warnings data separately
+    setWarningsData(validWarningsData);
 
     if (updatedCount > 0) {
       setUploadedMerchants(updatedMerchants);
@@ -473,6 +542,185 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     );
   };
 
+  // Application Data Table component
+  const ApplicationDataTable = () => {
+    if (applicationData.length === 0) return (
+      <div className="text-sm text-gray-500 mt-4">
+        No application data uploaded
+      </div>
+    );
+    
+    return (
+      <div className="mt-4">
+        <h4 className="text-sm font-medium mb-2">Uploaded Application Data:</h4>
+        <div className="border rounded-md overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">MID</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Bank Comments</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {applicationData.map((item, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="px-4 py-2 text-sm">{item.mid}</td>
+                  <td className="px-4 py-2 text-sm">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      item.status === "approved" ? "bg-green-100 text-green-800" :
+                      item.status === "rejected" ? "bg-red-100 text-red-800" :
+                      item.status === "in-progress" ? "bg-blue-100 text-blue-800" :
+                      "bg-gray-100 text-gray-800"
+                    }`}>
+                      {item.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2 text-sm">
+                    {item.bankComments && item.bankComments.length > 0 ? (
+                      <ul className="list-disc pl-4">
+                        {item.bankComments.map((comment, i) => (
+                          <li key={i}>{comment}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      "No comments"
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  // Spends Data Table component
+  const SpendsDataTable = () => {
+    if (spendsData.length === 0) return (
+      <div className="text-sm text-gray-500 mt-4">
+        No spends data uploaded
+      </div>
+    );
+    
+    return (
+      <div className="mt-4">
+        <h4 className="text-sm font-medium mb-2">Uploaded Spends Data:</h4>
+        <div className="border rounded-md overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">MID</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Spend</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Trend</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Monthly Spends</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {spendsData.map((item, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="px-4 py-2 text-sm">{item.mid}</td>
+                  <td className="px-4 py-2 text-sm">{item.totalSpend}</td>
+                  <td className="px-4 py-2 text-sm">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      item.spendTrend === "increasing" ? "bg-green-100 text-green-800" :
+                      item.spendTrend === "decreasing" ? "bg-red-100 text-red-800" :
+                      item.spendTrend === "stable" ? "bg-blue-100 text-blue-800" :
+                      "bg-gray-100 text-gray-800"
+                    }`}>
+                      {item.spendTrend}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2 text-sm">
+                    {item.monthlySpends && item.monthlySpends.length > 0 ? (
+                      <ul className="list-none space-y-1">
+                        {item.monthlySpends.map((spend, i) => (
+                          <li key={i}>{spend.month}: ₹{spend.amount}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      "No monthly data"
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  // Warnings Data Table component
+  const WarningsDataTable = () => {
+    if (warningsData.length === 0) return (
+      <div className="text-sm text-gray-500 mt-4">
+        No warnings data uploaded
+      </div>
+    );
+    
+    return (
+      <div className="mt-4">
+        <h4 className="text-sm font-medium mb-2">Uploaded Warning Signals Data:</h4>
+        <div className="border rounded-md overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">MID</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Risk Flag</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">GMV Drop %</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Spends Drop %</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Internal Triggers</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {warningsData.map((item, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="px-4 py-2 text-sm">{item.mid}</td>
+                  <td className="px-4 py-2 text-sm">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      item.riskFlag === "high" ? "bg-red-100 text-red-800" :
+                      item.riskFlag === "medium" ? "bg-yellow-100 text-yellow-800" :
+                      "bg-green-100 text-green-800"
+                    }`}>
+                      {item.riskFlag}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2 text-sm">{item.gmvDrop}%</td>
+                  <td className="px-4 py-2 text-sm">{item.spendsDrop}%</td>
+                  <td className="px-4 py-2 text-sm">
+                    {item.internalTriggers && item.internalTriggers.length > 0 ? (
+                      <ul className="list-disc pl-4">
+                        {item.internalTriggers.map((trigger, i) => (
+                          <li key={i} className="mb-1">
+                            <div className="font-medium">{trigger.name}</div>
+                            <div className="text-xs">
+                              <span className={`px-1 rounded ${
+                                trigger.severity === "high" ? "bg-red-100 text-red-800" :
+                                trigger.severity === "medium" ? "bg-yellow-100 text-yellow-800" :
+                                "bg-green-100 text-green-800"
+                              }`}>
+                                {trigger.severity}
+                              </span>
+                              {" - "}{trigger.details}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      "No triggers"
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -515,6 +763,52 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
                 </div>
                 <SavedFileInfo fileType="basic" />
                 <FileHistory files={basicFiles} />
+                
+                {uploadedMerchants.length > 0 && (
+                  <div className="space-y-4 mt-6">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-medium">Uploaded Merchants ({uploadedMerchants.length})</h3>
+                      <Button 
+                        onClick={handleSaveData}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        Save Data
+                      </Button>
+                    </div>
+                    <div className="max-h-72 overflow-y-auto border rounded-md">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50 sticky top-0">
+                          <tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">MID</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Business Type</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Avg Monthly GMV</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {uploadedMerchants.map((merchant) => (
+                            <tr key={merchant.mid} className="hover:bg-gray-50">
+                              <td className="px-4 py-2 text-sm">{merchant.mid}</td>
+                              <td className="px-4 py-2 text-sm">{merchant.name || 'N/A'}</td>
+                              <td className="px-4 py-2 text-sm">{merchant.businessType}</td>
+                              <td className="px-4 py-2 text-sm">₹{merchant.averageMonthlyGMV.toLocaleString()}</td>
+                              <td className="px-4 py-2 text-sm">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => setSelectedMerchant(merchant)}
+                                >
+                                  Check Eligibility
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             </TabsContent>
             
@@ -543,8 +837,17 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
                 <div className="text-xs text-gray-500">
                   File must contain application data with at least: mid, status (not-started, in-progress, approved, rejected), bankComments (array)
                 </div>
+                <div className="mt-4 flex justify-end">
+                  <Button 
+                    onClick={handleSaveData}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Save Data
+                  </Button>
+                </div>
                 <SavedFileInfo fileType="application" />
                 <FileHistory files={applicationFiles} />
+                <ApplicationDataTable />
               </div>
             </TabsContent>
             
@@ -573,8 +876,17 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
                 <div className="text-xs text-gray-500">
                   File must contain spend data with at least: mid, totalSpend, spendTrend (increasing, decreasing, stable, null), monthlySpends (array)
                 </div>
+                <div className="mt-4 flex justify-end">
+                  <Button 
+                    onClick={handleSaveData}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Save Data
+                  </Button>
+                </div>
                 <SavedFileInfo fileType="spends" />
                 <FileHistory files={spendsFiles} />
+                <SpendsDataTable />
               </div>
             </TabsContent>
             
@@ -603,57 +915,20 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
                 <div className="text-xs text-gray-500">
                   File must contain warning data with at least: mid, riskFlag (high, medium, low), gmvDrop, spendsDrop, internalTriggers (array)
                 </div>
+                <div className="mt-4 flex justify-end">
+                  <Button 
+                    onClick={handleSaveData}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Save Data
+                  </Button>
+                </div>
                 <SavedFileInfo fileType="warnings" />
                 <FileHistory files={warningsFiles} />
+                <WarningsDataTable />
               </div>
             </TabsContent>
           </Tabs>
-          
-          {uploadedMerchants.length > 0 && (
-            <div className="space-y-4 mt-6">
-              <div className="flex justify-between items-center">
-                <h3 className="font-medium">Uploaded Merchants ({uploadedMerchants.length})</h3>
-                <Button 
-                  onClick={handleSaveData}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  Save Data
-                </Button>
-              </div>
-              <div className="max-h-72 overflow-y-auto border rounded-md">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50 sticky top-0">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">MID</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Business Type</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Avg Monthly GMV</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {uploadedMerchants.map((merchant) => (
-                      <tr key={merchant.mid} className="hover:bg-gray-50">
-                        <td className="px-4 py-2 text-sm">{merchant.mid}</td>
-                        <td className="px-4 py-2 text-sm">{merchant.name || 'N/A'}</td>
-                        <td className="px-4 py-2 text-sm">{merchant.businessType}</td>
-                        <td className="px-4 py-2 text-sm">₹{merchant.averageMonthlyGMV.toLocaleString()}</td>
-                        <td className="px-4 py-2 text-sm">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => setSelectedMerchant(merchant)}
-                          >
-                            Check Eligibility
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
       
