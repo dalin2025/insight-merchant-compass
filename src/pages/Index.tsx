@@ -118,6 +118,7 @@ const Index = () => {
                 status={merchantData?.application?.status || "not-started"}
                 bankComments={merchantData?.application?.bankComments || []}
                 hasData={merchantData !== null && merchantData.application !== undefined}
+                merchant={merchantData}
               />
             )}
             
