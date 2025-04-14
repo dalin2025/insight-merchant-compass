@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MerchantData } from '@/types/eligibility';
@@ -67,6 +68,48 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
   useEffect(() => {
     if (savedMerchants.length > 0) {
       setUploadedMerchants(savedMerchants);
+      
+      // Extract application data from saved merchants
+      const appData = savedMerchants
+        .filter(merchant => merchant.application)
+        .map(merchant => ({
+          mid: merchant.mid,
+          status: merchant.application?.status || "not-started",
+          bankComments: merchant.application?.bankComments || []
+        }));
+      
+      if (appData.length > 0) {
+        setApplicationData(appData);
+      }
+      
+      // Extract spends data
+      const extractedSpendsData = savedMerchants
+        .filter(merchant => merchant.spends)
+        .map(merchant => ({
+          mid: merchant.mid,
+          totalSpend: merchant.spends?.totalSpend || "₹0",
+          spendTrend: merchant.spends?.spendTrend || "null",
+          monthlySpends: merchant.spends?.monthlySpends || []
+        }));
+        
+      if (extractedSpendsData.length > 0) {
+        setSpendData(extractedSpendsData);
+      }
+      
+      // Extract warning signals data
+      const extractedWarningsData = savedMerchants
+        .filter(merchant => merchant.warnings)
+        .map(merchant => ({
+          mid: merchant.mid,
+          riskFlag: merchant.warnings?.riskFlag || "low",
+          gmvDrop: merchant.warnings?.gmvDrop || 0,
+          spendsDrop: merchant.warnings?.spendsDrop || 0,
+          internalTriggers: merchant.warnings?.internalTriggers || []
+        }));
+        
+      if (extractedWarningsData.length > 0) {
+        setWarningsData(extractedWarningsData);
+      }
     }
   }, [savedMerchants]);
   
