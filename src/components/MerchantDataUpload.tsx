@@ -5,12 +5,24 @@ import { MerchantData, ApplicationStatus, SpendData, WarningSignals } from '@/ty
 import { evaluateEligibility } from '@/utils/eligibilityUtils';
 import EnhancedEligibilityTab from './EnhancedEligibilityTab';
 import { toast } from "sonner";
-import { downloadCSVTemplate } from '@/utils/merchantDataUploadUtils';
+import { 
+  downloadCSVTemplate, 
+  downloadSpendsTemplate, 
+  downloadApplicationTemplate,
+  downloadWarningsTemplate
+} from '@/utils/merchantDataUploadUtils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FileIcon } from "lucide-react";
 
 interface MerchantDataUploadProps {
   savedMerchants: MerchantData[];
   onMerchantDataSave: (merchants: MerchantData[]) => void;
+}
+
+interface UploadedFile {
+  name: string;
+  size: number;
+  date: Date;
 }
 
 const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantDataUploadProps) => {
@@ -18,6 +30,11 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
   const [selectedMerchant, setSelectedMerchant] = useState<MerchantData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeUploadTab, setActiveUploadTab] = useState("basic");
+  
+  const [basicFiles, setBasicFiles] = useState<UploadedFile[]>([]);
+  const [applicationFiles, setApplicationFiles] = useState<UploadedFile[]>([]);
+  const [spendsFiles, setSpendsFiles] = useState<UploadedFile[]>([]);
+  const [warningsFiles, setWarningsFiles] = useState<UploadedFile[]>([]);
   
   useEffect(() => {
     if (savedMerchants.length > 0) {
@@ -41,25 +58,31 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
           
           if (type === "basic") {
             validateAndSetMerchants(parsedData);
+            addFileToHistory(file, setBasicFiles);
           } else if (type === "application") {
             validateAndUpdateApplicationStatus(parsedData);
+            addFileToHistory(file, setApplicationFiles);
           } else if (type === "spends") {
             validateAndUpdateSpendData(parsedData);
+            addFileToHistory(file, setSpendsFiles);
           } else if (type === "warnings") {
             validateAndUpdateWarningData(parsedData);
+            addFileToHistory(file, setWarningsFiles);
           }
         } 
         else if (file.name.endsWith('.csv')) {
-          const parsedData = parseCSV(content);
-          
           if (type === "basic") {
-            validateAndSetMerchants(parsedData);
+            validateAndSetMerchants(parseCSV(content));
+            addFileToHistory(file, setBasicFiles);
           } else if (type === "application") {
-            validateAndUpdateApplicationStatus(parsedData);
+            validateAndUpdateApplicationStatus(parseCSV(content));
+            addFileToHistory(file, setApplicationFiles);
           } else if (type === "spends") {
             validateAndUpdateSpendData(parseCSV(content, true));
+            addFileToHistory(file, setSpendsFiles);
           } else if (type === "warnings") {
-            validateAndUpdateWarningData(parsedData);
+            validateAndUpdateWarningData(parseCSV(content));
+            addFileToHistory(file, setWarningsFiles);
           }
         } 
         else {
@@ -70,6 +93,7 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         toast.error("Failed to process file. Please check the format.");
       } finally {
         setIsLoading(false);
+        event.target.value = '';
       }
     };
     
@@ -79,6 +103,23 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
       toast.error("Unsupported file format. Please upload JSON or CSV files.");
       setIsLoading(false);
     }
+  };
+  
+  const addFileToHistory = (file: File, setFilesFunction: React.Dispatch<React.SetStateAction<UploadedFile[]>>) => {
+    setFilesFunction(prev => [
+      {
+        name: file.name,
+        size: file.size,
+        date: new Date()
+      },
+      ...prev
+    ].slice(0, 5));
+  };
+  
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' bytes';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
   };
   
   const parseCSV = (csvContent: string, isSpendData = false): any[] => {
@@ -362,51 +403,33 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     toast.success("Merchant data saved successfully!");
   };
 
-  const downloadApplicationTemplate = () => {
-    const content = `mid,status,bankComments
-RZPM10098765,in-progress,"KYC documents verified successfully.,Business profile meets bank requirements."`;
+  const FileHistory = ({ files }: { files: UploadedFile[] }) => {
+    if (files.length === 0) return (
+      <div className="text-sm text-gray-500 mt-4">
+        No files uploaded yet
+      </div>
+    );
     
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "application_data_template.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    return (
+      <div className="mt-4 space-y-2">
+        <h4 className="text-sm font-medium">Recently Uploaded Files:</h4>
+        <div className="space-y-2">
+          {files.map((file, index) => (
+            <div key={index} className="flex items-center gap-2 p-2 rounded-md bg-gray-50 border text-sm">
+              <FileIcon className="h-4 w-4 text-gray-500" />
+              <div className="flex-1 truncate">
+                <div className="font-medium truncate">{file.name}</div>
+                <div className="text-xs text-gray-500">
+                  {formatFileSize(file.size)} • {file.date.toLocaleString()}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
-  const downloadSpendsTemplate = () => {
-    const content = `mid,totalSpend,spendTrend,monthlySpends
-RZPM10098765,₹1,75,000,increasing,"[{""month"":""Jan"",""amount"":45000},{""month"":""Feb"",""amount"":52000},{""month"":""Mar"",""amount"":78000}]"`;
-    
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "spends_data_template.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const downloadWarningsTemplate = () => {
-    const content = `mid,riskFlag,gmvDrop,spendsDrop,internalTriggers
-RZPM10098765,medium,15,8,"[{""name"":""Delayed Payment"",""severity"":""high"",""details"":""2 payments delayed by more than 5 days in the last month""},{""name"":""Ticket Escalation"",""severity"":""low"",""details"":""1 support ticket escalated in the last 3 months""}]"`;
-    
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "warnings_data_template.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-  
   return (
     <div className="space-y-6">
       <Card>
@@ -434,10 +457,12 @@ RZPM10098765,medium,15,8,"[{""name"":""Delayed Payment"",""severity"":""high"","
                     accept=".json,.csv"
                     onChange={(e) => handleFileUpload(e, "basic")}
                     className="border rounded-md p-2 flex-1"
+                    disabled={isLoading}
                   />
                   <Button 
                     variant="outline"
                     onClick={() => downloadCSVTemplate()}
+                    disabled={isLoading}
                   >
                     Download Template
                   </Button>
@@ -445,6 +470,7 @@ RZPM10098765,medium,15,8,"[{""name"":""Delayed Payment"",""severity"":""high"","
                 <div className="text-xs text-gray-500">
                   File must contain merchant data with at least: mid, businessCategory, pgVintage, businessType, averageMonthlyGMV, qoqGrowth, activeDays
                 </div>
+                <FileHistory files={basicFiles} />
               </div>
             </TabsContent>
             
@@ -460,10 +486,12 @@ RZPM10098765,medium,15,8,"[{""name"":""Delayed Payment"",""severity"":""high"","
                     accept=".json,.csv"
                     onChange={(e) => handleFileUpload(e, "application")}
                     className="border rounded-md p-2 flex-1"
+                    disabled={isLoading}
                   />
                   <Button 
                     variant="outline"
                     onClick={downloadApplicationTemplate}
+                    disabled={isLoading}
                   >
                     Download Template
                   </Button>
@@ -471,6 +499,7 @@ RZPM10098765,medium,15,8,"[{""name"":""Delayed Payment"",""severity"":""high"","
                 <div className="text-xs text-gray-500">
                   File must contain application data with at least: mid, status (not-started, in-progress, approved, rejected), bankComments (array)
                 </div>
+                <FileHistory files={applicationFiles} />
               </div>
             </TabsContent>
             
@@ -486,10 +515,12 @@ RZPM10098765,medium,15,8,"[{""name"":""Delayed Payment"",""severity"":""high"","
                     accept=".json,.csv"
                     onChange={(e) => handleFileUpload(e, "spends")}
                     className="border rounded-md p-2 flex-1"
+                    disabled={isLoading}
                   />
                   <Button 
                     variant="outline"
                     onClick={downloadSpendsTemplate}
+                    disabled={isLoading}
                   >
                     Download Template
                   </Button>
@@ -497,6 +528,7 @@ RZPM10098765,medium,15,8,"[{""name"":""Delayed Payment"",""severity"":""high"","
                 <div className="text-xs text-gray-500">
                   File must contain spend data with at least: mid, totalSpend, spendTrend (increasing, decreasing, stable, null), monthlySpends (array)
                 </div>
+                <FileHistory files={spendsFiles} />
               </div>
             </TabsContent>
             
@@ -512,10 +544,12 @@ RZPM10098765,medium,15,8,"[{""name"":""Delayed Payment"",""severity"":""high"","
                     accept=".json,.csv"
                     onChange={(e) => handleFileUpload(e, "warnings")}
                     className="border rounded-md p-2 flex-1"
+                    disabled={isLoading}
                   />
                   <Button 
                     variant="outline"
                     onClick={downloadWarningsTemplate}
+                    disabled={isLoading}
                   >
                     Download Template
                   </Button>
@@ -523,6 +557,7 @@ RZPM10098765,medium,15,8,"[{""name"":""Delayed Payment"",""severity"":""high"","
                 <div className="text-xs text-gray-500">
                   File must contain warning data with at least: mid, riskFlag (high, medium, low), gmvDrop, spendsDrop, internalTriggers (array)
                 </div>
+                <FileHistory files={warningsFiles} />
               </div>
             </TabsContent>
           </Tabs>

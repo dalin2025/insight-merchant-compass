@@ -94,3 +94,32 @@ RZPM10098765,₹175000,increasing,Jan,45000,Feb,52000,Mar,78000`;
   document.body.removeChild(link);
 };
 
+export const downloadApplicationTemplate = () => {
+  const content = `mid,status,bankComments
+RZPM10098765,in-progress,"KYC documents verified successfully.,Business profile meets bank requirements."`;
+  
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", "application_data_template.csv");
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+export const downloadWarningsTemplate = () => {
+  const content = `mid,riskFlag,gmvDrop,spendsDrop,internalTriggers
+RZPM10098765,medium,15,8,"[{""name"":""Delayed Payment"",""severity"":""high"",""details"":""2 payments delayed by more than 5 days in the last month""},{""name"":""Ticket Escalation"",""severity"":""low"",""details"":""1 support ticket escalated in the last 3 months""}]"`;
+  
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", "warnings_data_template.csv");
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
