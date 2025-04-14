@@ -103,11 +103,6 @@ const MerchantDataUpload = () => {
         }
       }
       
-      // Ensure isProfitable is boolean if present
-      if ('isProfitable' in merchant && typeof merchant.isProfitable !== 'boolean') {
-        merchant.isProfitable = merchant.isProfitable === true || merchant.isProfitable === 'true';
-      }
-      
       validMerchants.push(merchant as MerchantData);
     });
     

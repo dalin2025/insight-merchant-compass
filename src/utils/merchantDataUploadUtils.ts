@@ -9,8 +9,7 @@ export const CSV_TEMPLATE_HEADERS = [
   "businessType",
   "averageMonthlyGMV",
   "qoqGrowth",
-  "activeDays",
-  "isProfitable"
+  "activeDays"
 ];
 
 export const BUSINESS_CATEGORIES: BusinessCategory[] = [
@@ -39,8 +38,7 @@ export const generateCSVTemplate = (): string => {
     "Private Limited",
     "3000000",
     "5",
-    "180",
-    "true"
+    "180"
   ].join(",");
   
   return `${headers}\n${sampleData}`;
@@ -57,10 +55,8 @@ export const getPolicyRules = () => ({
     },
     limitCalculation: {
       percentage: 0.25, // 25% of GMV
-      maxLimit: {
-        profitable: 30000000, // 3 crore for profitable companies
-        unprofitable: 3000000 // 30 lacs for unprofitable companies
-      }
+      maxLimit: 30000000, // 3 crore maximum limit
+      minLimit: 0 // Minimum calculated as 25% of GMV
     }
   },
   RBLPolicy: {

@@ -121,11 +121,12 @@ export const evaluateRBLPolicy = (merchant: MerchantData): Policy => {
 export const calculateLimit = (merchant: MerchantData, policy: Policy): string => {
   if (policy.id === "ybl") {
     // YBL limit calculation: 25% of average monthly GMV
-    // Max 30 lacs for unprofitable companies and 3 cr for profitable companies
-    const baseLimit = merchant.averageMonthlyGMV * 0.25;
-    const maxLimit = merchant.isProfitable ? 30000000 : 3000000; // 3 cr or 30 lacs
-    const limit = Math.min(baseLimit, maxLimit);
-    return formatCurrency(limit);
+    const minLimit = merchant.averageMonthlyGMV * 0.25;
+    const maxLimit = 30000000; // 3 cr maximum cap
+    const calculatedLimit = Math.min(minLimit, maxLimit);
+    
+    // Return a range format showing min to max
+    return `Minimum: ${formatCurrency(minLimit)} - Maximum: ${formatCurrency(maxLimit)}`;
   } else if (policy.id === "rbl") {
     // RBL policy now uses a fixed message instead of a calculation
     return "Eligible but limit will be based on total underwriting";
