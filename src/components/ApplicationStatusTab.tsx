@@ -8,11 +8,13 @@ type StatusType = "not-started" | "in-progress" | "approved" | "rejected";
 type ApplicationStatusTabProps = {
   status: StatusType;
   bankComments?: string[];
+  hasData?: boolean;
 };
 
 const ApplicationStatusTab = ({
   status,
-  bankComments = ["KYC documents verified successfully.", "Business profile meets bank requirements."],
+  bankComments = [],
+  hasData = false
 }: ApplicationStatusTabProps) => {
   // Define timeline steps based on status
   const getTimelineSteps = () => {
@@ -66,9 +68,17 @@ const ApplicationStatusTab = ({
       case "rejected":
         return <StatusBadge status="Rejected" type="error" />;
       default:
-        return <StatusBadge status="Unknown" type="neutral" />;
+        return <StatusBadge status="Not Started" type="neutral" />;
     }
   };
+
+  if (!hasData) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <p className="text-gray-500">No application data available for this merchant</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -17,6 +17,7 @@ export interface Policy {
 export interface EligibilityResult {
   isEligible: boolean;
   matchingPolicies: Policy[];
+  allPolicies: Policy[]; // Added all policies for easy access by ID
   calculatedLimit: string;
   primaryPolicy?: Policy;
   ineligibilityReasons: string[];

@@ -192,6 +192,7 @@ export const evaluateEligibility = (merchant: MerchantData): EligibilityResult =
   return {
     isEligible,
     matchingPolicies,
+    allPolicies: policies, // Add all policies to the result
     calculatedLimit,
     primaryPolicy,
     ineligibilityReasons: [...new Set(ineligibilityReasons)] // Remove duplicates

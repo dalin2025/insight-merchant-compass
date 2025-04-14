@@ -2,11 +2,12 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MerchantData } from '@/types/eligibility';
+import { MerchantData, ApplicationStatus, SpendData, WarningSignals } from '@/types/eligibility';
 import { evaluateEligibility } from '@/utils/eligibilityUtils';
 import EnhancedEligibilityTab from './EnhancedEligibilityTab';
 import { toast } from "sonner";
 import { downloadCSVTemplate } from '@/utils/merchantDataUploadUtils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface MerchantDataUploadProps {
   savedMerchants: MerchantData[];
@@ -17,6 +18,7 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
   const [uploadedMerchants, setUploadedMerchants] = useState<MerchantData[]>([]);
   const [selectedMerchant, setSelectedMerchant] = useState<MerchantData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeUploadTab, setActiveUploadTab] = useState("basic");
   
   // Initialize with saved data
   useEffect(() => {
@@ -25,7 +27,7 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     }
   }, [savedMerchants]);
   
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, type: string) => {
     const file = event.target.files?.[0];
     if (!file) return;
     
@@ -39,13 +41,31 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         if (file.name.endsWith('.json')) {
           const data = JSON.parse(content);
           // Check if it's an array of merchants or a single merchant
-          const merchants = Array.isArray(data) ? data : [data];
-          validateAndSetMerchants(merchants);
+          const parsedData = Array.isArray(data) ? data : [data];
+          
+          if (type === "basic") {
+            validateAndSetMerchants(parsedData);
+          } else if (type === "application") {
+            validateAndUpdateApplicationStatus(parsedData);
+          } else if (type === "spends") {
+            validateAndUpdateSpendData(parsedData);
+          } else if (type === "warnings") {
+            validateAndUpdateWarningData(parsedData);
+          }
         } 
         // Handle CSV format
         else if (file.name.endsWith('.csv')) {
-          const merchants = parseCSV(content);
-          validateAndSetMerchants(merchants);
+          const parsedData = parseCSV(content);
+          
+          if (type === "basic") {
+            validateAndSetMerchants(parsedData);
+          } else if (type === "application") {
+            validateAndUpdateApplicationStatus(parsedData);
+          } else if (type === "spends") {
+            validateAndUpdateSpendData(parsedData);
+          } else if (type === "warnings") {
+            validateAndUpdateWarningData(parsedData);
+          }
         } 
         else {
           toast.error("Unsupported file format. Please upload JSON or CSV files.");
@@ -58,9 +78,7 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
       }
     };
     
-    if (file.name.endsWith('.json')) {
-      reader.readAsText(file);
-    } else if (file.name.endsWith('.csv')) {
+    if (file.name.endsWith('.json') || file.name.endsWith('.csv')) {
       reader.readAsText(file);
     } else {
       toast.error("Unsupported file format. Please upload JSON or CSV files.");
@@ -68,28 +86,28 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     }
   };
   
-  const parseCSV = (csvContent: string): Partial<MerchantData>[] => {
+  const parseCSV = (csvContent: string): any[] => {
     const lines = csvContent.split('\n');
     const headers = lines[0].split(',').map(header => header.trim());
     
     return lines.slice(1).filter(line => line.trim()).map(line => {
       const values = line.split(',').map(value => value.trim());
-      const merchant: Record<string, any> = {};
+      const data: Record<string, any> = {};
       
       headers.forEach((header, index) => {
         let value = values[index];
         
         // Try to convert numeric values
         if (/^\d+(\.\d+)?$/.test(value)) {
-          merchant[header] = parseFloat(value);
+          data[header] = parseFloat(value);
         } else if (value === 'true' || value === 'false') {
-          merchant[header] = value === 'true';
+          data[header] = value === 'true';
         } else {
-          merchant[header] = value;
+          data[header] = value;
         }
       });
       
-      return merchant as Partial<MerchantData>;
+      return data;
     });
   };
   
@@ -135,7 +153,13 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     validMerchants.forEach(newMerchant => {
       const existingIndex = updatedMerchants.findIndex(m => m.mid === newMerchant.mid);
       if (existingIndex >= 0) {
-        updatedMerchants[existingIndex] = newMerchant;
+        // Preserve additional data that might exist
+        updatedMerchants[existingIndex] = {
+          ...newMerchant,
+          application: updatedMerchants[existingIndex].application,
+          spends: updatedMerchants[existingIndex].spends,
+          warnings: updatedMerchants[existingIndex].warnings
+        };
       } else {
         updatedMerchants.push(newMerchant);
       }
@@ -144,10 +168,230 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     setUploadedMerchants(updatedMerchants);
     toast.success(`Successfully loaded ${validMerchants.length} merchant records`);
   };
+
+  const validateAndUpdateApplicationStatus = (applicationData: any[]) => {
+    if (applicationData.length === 0) {
+      toast.error("No application data found in the file");
+      return;
+    }
+
+    let updatedCount = 0;
+    const updatedMerchants = [...uploadedMerchants];
+
+    applicationData.forEach(data => {
+      if (!data.mid) {
+        toast.warning("Application data missing required MID field");
+        return;
+      }
+
+      const merchantIndex = updatedMerchants.findIndex(m => m.mid === data.mid);
+      if (merchantIndex === -1) {
+        toast.warning(`Merchant with MID ${data.mid} not found`);
+        return;
+      }
+
+      // Validate status
+      const validStatuses = ["not-started", "in-progress", "approved", "rejected"];
+      if (data.status && !validStatuses.includes(data.status)) {
+        toast.warning(`Invalid status "${data.status}" for merchant ${data.mid}`);
+        return;
+      }
+
+      // Update application status
+      updatedMerchants[merchantIndex] = {
+        ...updatedMerchants[merchantIndex],
+        application: {
+          status: data.status || "not-started",
+          bankComments: Array.isArray(data.bankComments) ? data.bankComments : []
+        }
+      };
+      updatedCount++;
+    });
+
+    if (updatedCount > 0) {
+      setUploadedMerchants(updatedMerchants);
+      toast.success(`Updated application data for ${updatedCount} merchants`);
+    } else {
+      toast.error("No merchant data was updated");
+    }
+  };
+
+  const validateAndUpdateSpendData = (spendsData: any[]) => {
+    if (spendsData.length === 0) {
+      toast.error("No spends data found in the file");
+      return;
+    }
+
+    let updatedCount = 0;
+    const updatedMerchants = [...uploadedMerchants];
+
+    spendsData.forEach(data => {
+      if (!data.mid) {
+        toast.warning("Spends data missing required MID field");
+        return;
+      }
+
+      const merchantIndex = updatedMerchants.findIndex(m => m.mid === data.mid);
+      if (merchantIndex === -1) {
+        toast.warning(`Merchant with MID ${data.mid} not found`);
+        return;
+      }
+
+      // Validate trend
+      const validTrends = ["increasing", "decreasing", "stable", "null"];
+      if (data.spendTrend && !validTrends.includes(data.spendTrend)) {
+        toast.warning(`Invalid spendTrend "${data.spendTrend}" for merchant ${data.mid}`);
+        return;
+      }
+
+      // Validate monthly spends format
+      let monthlySpends: Array<{month: string; amount: number}> = [];
+      if (data.monthlySpends) {
+        if (!Array.isArray(data.monthlySpends)) {
+          toast.warning(`Invalid monthlySpends format for merchant ${data.mid}`);
+          return;
+        }
+        
+        monthlySpends = data.monthlySpends.filter((spend: any) => 
+          typeof spend === 'object' && 
+          typeof spend.month === 'string' && 
+          typeof spend.amount === 'number'
+        );
+      }
+
+      // Update spends data
+      updatedMerchants[merchantIndex] = {
+        ...updatedMerchants[merchantIndex],
+        spends: {
+          totalSpend: data.totalSpend || "₹0",
+          spendTrend: data.spendTrend || "null",
+          monthlySpends: monthlySpends
+        }
+      };
+      updatedCount++;
+    });
+
+    if (updatedCount > 0) {
+      setUploadedMerchants(updatedMerchants);
+      toast.success(`Updated spends data for ${updatedCount} merchants`);
+    } else {
+      toast.error("No merchant data was updated");
+    }
+  };
+
+  const validateAndUpdateWarningData = (warningData: any[]) => {
+    if (warningData.length === 0) {
+      toast.error("No warning data found in the file");
+      return;
+    }
+
+    let updatedCount = 0;
+    const updatedMerchants = [...uploadedMerchants];
+
+    warningData.forEach(data => {
+      if (!data.mid) {
+        toast.warning("Warning data missing required MID field");
+        return;
+      }
+
+      const merchantIndex = updatedMerchants.findIndex(m => m.mid === data.mid);
+      if (merchantIndex === -1) {
+        toast.warning(`Merchant with MID ${data.mid} not found`);
+        return;
+      }
+
+      // Validate risk flag
+      const validRiskLevels = ["high", "medium", "low"];
+      if (data.riskFlag && !validRiskLevels.includes(data.riskFlag)) {
+        toast.warning(`Invalid riskFlag "${data.riskFlag}" for merchant ${data.mid}`);
+        return;
+      }
+
+      // Validate internal triggers
+      let internalTriggers: Array<{name: string; severity: "high" | "medium" | "low"; details: string}> = [];
+      if (data.internalTriggers) {
+        if (!Array.isArray(data.internalTriggers)) {
+          toast.warning(`Invalid internalTriggers format for merchant ${data.mid}`);
+          return;
+        }
+        
+        internalTriggers = data.internalTriggers.filter((trigger: any) => 
+          typeof trigger === 'object' && 
+          typeof trigger.name === 'string' && 
+          validRiskLevels.includes(trigger.severity) &&
+          typeof trigger.details === 'string'
+        );
+      }
+
+      // Update warning data
+      updatedMerchants[merchantIndex] = {
+        ...updatedMerchants[merchantIndex],
+        warnings: {
+          riskFlag: data.riskFlag || "low",
+          gmvDrop: typeof data.gmvDrop === 'number' ? data.gmvDrop : 0,
+          spendsDrop: typeof data.spendsDrop === 'number' ? data.spendsDrop : 0,
+          internalTriggers: internalTriggers
+        }
+      };
+      updatedCount++;
+    });
+
+    if (updatedCount > 0) {
+      setUploadedMerchants(updatedMerchants);
+      toast.success(`Updated warning data for ${updatedCount} merchants`);
+    } else {
+      toast.error("No merchant data was updated");
+    }
+  };
   
   const handleSaveData = () => {
     onMerchantDataSave(uploadedMerchants);
     toast.success("Merchant data saved successfully!");
+  };
+
+  const downloadApplicationTemplate = () => {
+    const content = `mid,status,bankComments
+RZPM10098765,in-progress,"KYC documents verified successfully.,Business profile meets bank requirements."`;
+    
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "application_data_template.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadSpendsTemplate = () => {
+    const content = `mid,totalSpend,spendTrend,monthlySpends
+RZPM10098765,₹1,75,000,increasing,"[{""month"":""Jan"",""amount"":45000},{""month"":""Feb"",""amount"":52000},{""month"":""Mar"",""amount"":78000}]"`;
+    
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "spends_data_template.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadWarningsTemplate = () => {
+    const content = `mid,riskFlag,gmvDrop,spendsDrop,internalTriggers
+RZPM10098765,medium,15,8,"[{""name"":""Delayed Payment"",""severity"":""high"",""details"":""2 payments delayed by more than 5 days in the last month""},{""name"":""Ticket Escalation"",""severity"":""low"",""details"":""1 support ticket escalated in the last 3 months""}]"`;
+    
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "warnings_data_template.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
   
   return (
@@ -157,77 +401,164 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
           <CardTitle>Upload Merchant Data</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex flex-col space-y-2">
-              <label htmlFor="merchant-file" className="text-sm font-medium">
-                Upload JSON or CSV file with merchant data
-              </label>
-              <div className="flex gap-2">
-                <input
-                  id="merchant-file"
-                  type="file"
-                  accept=".json,.csv"
-                  onChange={handleFileUpload}
-                  className="border rounded-md p-2 flex-1"
-                />
-                <Button 
-                  variant="outline"
-                  onClick={() => downloadCSVTemplate()}
-                >
-                  Download Template
-                </Button>
-              </div>
-              <div className="text-xs text-gray-500">
-                File must contain merchant data with at least: mid, businessCategory, pgVintage, businessType, averageMonthlyGMV, qoqGrowth, activeDays
-              </div>
-            </div>
+          <Tabs defaultValue="basic" value={activeUploadTab} onValueChange={setActiveUploadTab}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="basic">Basic Information</TabsTrigger>
+              <TabsTrigger value="application">Application Status</TabsTrigger>
+              <TabsTrigger value="spends">Spends Data</TabsTrigger>
+              <TabsTrigger value="warnings">Warning Signals</TabsTrigger>
+            </TabsList>
             
-            {uploadedMerchants.length > 0 && (
-              <div className="space-y-4 mt-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-medium">Uploaded Merchants ({uploadedMerchants.length})</h3>
+            <TabsContent value="basic">
+              <div className="flex flex-col space-y-2">
+                <label htmlFor="merchant-file" className="text-sm font-medium">
+                  Upload JSON or CSV file with merchant basic data
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="merchant-file"
+                    type="file"
+                    accept=".json,.csv"
+                    onChange={(e) => handleFileUpload(e, "basic")}
+                    className="border rounded-md p-2 flex-1"
+                  />
                   <Button 
-                    onClick={handleSaveData}
-                    className="bg-green-600 hover:bg-green-700"
+                    variant="outline"
+                    onClick={() => downloadCSVTemplate()}
                   >
-                    Save Data
+                    Download Template
                   </Button>
                 </div>
-                <div className="max-h-72 overflow-y-auto border rounded-md">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50 sticky top-0">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">MID</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Business Type</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Avg Monthly GMV</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {uploadedMerchants.map((merchant) => (
-                        <tr key={merchant.mid} className="hover:bg-gray-50">
-                          <td className="px-4 py-2 text-sm">{merchant.mid}</td>
-                          <td className="px-4 py-2 text-sm">{merchant.name || 'N/A'}</td>
-                          <td className="px-4 py-2 text-sm">{merchant.businessType}</td>
-                          <td className="px-4 py-2 text-sm">₹{merchant.averageMonthlyGMV.toLocaleString()}</td>
-                          <td className="px-4 py-2 text-sm">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => setSelectedMerchant(merchant)}
-                            >
-                              Check Eligibility
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="text-xs text-gray-500">
+                  File must contain merchant data with at least: mid, businessCategory, pgVintage, businessType, averageMonthlyGMV, qoqGrowth, activeDays
                 </div>
               </div>
-            )}
-          </div>
+            </TabsContent>
+            
+            <TabsContent value="application">
+              <div className="flex flex-col space-y-2">
+                <label htmlFor="application-file" className="text-sm font-medium">
+                  Upload JSON or CSV file with application status data
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="application-file"
+                    type="file"
+                    accept=".json,.csv"
+                    onChange={(e) => handleFileUpload(e, "application")}
+                    className="border rounded-md p-2 flex-1"
+                  />
+                  <Button 
+                    variant="outline"
+                    onClick={downloadApplicationTemplate}
+                  >
+                    Download Template
+                  </Button>
+                </div>
+                <div className="text-xs text-gray-500">
+                  File must contain application data with at least: mid, status (not-started, in-progress, approved, rejected), bankComments (array)
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="spends">
+              <div className="flex flex-col space-y-2">
+                <label htmlFor="spends-file" className="text-sm font-medium">
+                  Upload JSON or CSV file with spend data
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="spends-file"
+                    type="file"
+                    accept=".json,.csv"
+                    onChange={(e) => handleFileUpload(e, "spends")}
+                    className="border rounded-md p-2 flex-1"
+                  />
+                  <Button 
+                    variant="outline"
+                    onClick={downloadSpendsTemplate}
+                  >
+                    Download Template
+                  </Button>
+                </div>
+                <div className="text-xs text-gray-500">
+                  File must contain spend data with at least: mid, totalSpend, spendTrend (increasing, decreasing, stable, null), monthlySpends (array)
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="warnings">
+              <div className="flex flex-col space-y-2">
+                <label htmlFor="warnings-file" className="text-sm font-medium">
+                  Upload JSON or CSV file with warning signals data
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="warnings-file"
+                    type="file"
+                    accept=".json,.csv"
+                    onChange={(e) => handleFileUpload(e, "warnings")}
+                    className="border rounded-md p-2 flex-1"
+                  />
+                  <Button 
+                    variant="outline"
+                    onClick={downloadWarningsTemplate}
+                  >
+                    Download Template
+                  </Button>
+                </div>
+                <div className="text-xs text-gray-500">
+                  File must contain warning data with at least: mid, riskFlag (high, medium, low), gmvDrop, spendsDrop, internalTriggers (array)
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+          
+          {uploadedMerchants.length > 0 && (
+            <div className="space-y-4 mt-6">
+              <div className="flex justify-between items-center">
+                <h3 className="font-medium">Uploaded Merchants ({uploadedMerchants.length})</h3>
+                <Button 
+                  onClick={handleSaveData}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Save Data
+                </Button>
+              </div>
+              <div className="max-h-72 overflow-y-auto border rounded-md">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">MID</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Business Type</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Avg Monthly GMV</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {uploadedMerchants.map((merchant) => (
+                      <tr key={merchant.mid} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 text-sm">{merchant.mid}</td>
+                        <td className="px-4 py-2 text-sm">{merchant.name || 'N/A'}</td>
+                        <td className="px-4 py-2 text-sm">{merchant.businessType}</td>
+                        <td className="px-4 py-2 text-sm">₹{merchant.averageMonthlyGMV.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-sm">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => setSelectedMerchant(merchant)}
+                          >
+                            Check Eligibility
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
       

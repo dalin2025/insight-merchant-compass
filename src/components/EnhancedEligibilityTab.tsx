@@ -37,6 +37,14 @@ const EnhancedEligibilityTab = ({ eligibilityResult }: EnhancedEligibilityTabPro
     setExpandedPolicy(expandedPolicy === policyId ? null : policyId);
   };
 
+  // Get policies by ID (including non-eligible ones)
+  const getPolicy = (id: string): Policy | undefined => {
+    return eligibilityResult.allPolicies?.find(policy => policy.id === id);
+  };
+
+  const yblPolicy = getPolicy('ybl');
+  const rblPolicy = getPolicy('rbl');
+
   return (
     <div className="space-y-6">
       {/* Eligibility Status */}
@@ -58,11 +66,36 @@ const EnhancedEligibilityTab = ({ eligibilityResult }: EnhancedEligibilityTabPro
         {!eligibilityResult.isEligible && (
           <div className="mt-4">
             <p className="text-sm font-medium text-red-600">Reasons for Ineligibility:</p>
-            <ul className="mt-2 list-disc pl-5 space-y-1">
-              {eligibilityResult.ineligibilityReasons.map((reason, index) => (
-                <li key={index} className="text-sm text-gray-600">{reason}</li>
-              ))}
-            </ul>
+            
+            {yblPolicy && !yblPolicy.isEligible && (
+              <div className="mt-2">
+                <p className="text-sm font-medium">YBL Policy:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  {yblPolicy.parameters
+                    .filter(param => !param.meets)
+                    .map((param, index) => (
+                      <li key={`ybl-${index}`} className="text-sm text-gray-600">
+                        {param.description || `${param.name} criteria not met`}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
+            
+            {rblPolicy && !rblPolicy.isEligible && (
+              <div className="mt-2">
+                <p className="text-sm font-medium">RBL Policy:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  {rblPolicy.parameters
+                    .filter(param => !param.meets)
+                    .map((param, index) => (
+                      <li key={`rbl-${index}`} className="text-sm text-gray-600">
+                        {param.description || `${param.name} criteria not met`}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -75,8 +108,8 @@ const EnhancedEligibilityTab = ({ eligibilityResult }: EnhancedEligibilityTabPro
         
         <div className="divide-y">
           {/* Display all policies that were evaluated */}
-          {eligibilityResult.matchingPolicies.length > 0 ? (
-            eligibilityResult.matchingPolicies.map((policy) => (
+          {eligibilityResult.allPolicies && eligibilityResult.allPolicies.length > 0 ? (
+            eligibilityResult.allPolicies.map((policy) => (
               <div key={policy.id} className="p-4">
                 <div 
                   className="flex cursor-pointer items-center justify-between"

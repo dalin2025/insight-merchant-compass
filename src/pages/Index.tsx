@@ -117,14 +117,16 @@ const Index = () => {
               <ApplicationStatusTab 
                 status={merchantData?.application?.status || "not-started"}
                 bankComments={merchantData?.application?.bankComments || []}
+                hasData={merchantData !== null && merchantData.application !== undefined}
               />
             )}
             
             {activeTab === "spends" && (
               <LiveSpendsTab 
                 totalSpend={merchantData?.spends?.totalSpend || "₹0"}
-                spendTrend={merchantData?.spends?.spendTrend || "stable"}
+                spendTrend={merchantData?.spends?.spendTrend || "null"}
                 monthlySpends={merchantData?.spends?.monthlySpends || []}
+                hasData={merchantData !== null && merchantData.spends !== undefined}
               />
             )}
             
@@ -134,6 +136,7 @@ const Index = () => {
                 gmvDrop={merchantData?.warnings?.gmvDrop || 0}
                 spendsDrop={merchantData?.warnings?.spendsDrop || 0}
                 internalTriggers={merchantData?.warnings?.internalTriggers || []}
+                hasData={merchantData !== null && merchantData.warnings !== undefined}
               />
             )}
             
