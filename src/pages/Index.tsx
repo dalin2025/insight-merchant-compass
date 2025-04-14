@@ -8,6 +8,7 @@ import ApplicationStatusTab from "@/components/ApplicationStatusTab";
 import LiveSpendsTab from "@/components/LiveSpendsTab";
 import EarlyWarningTab from "@/components/EarlyWarningTab";
 import MerchantSearchBar from "@/components/MerchantSearchBar";
+import MerchantDataUpload from "@/components/MerchantDataUpload";
 import { evaluateEligibility } from "@/utils/eligibilityUtils";
 
 // Mock data - in real app this would come from API
@@ -62,6 +63,7 @@ const Index = () => {
     { id: "spends", label: "Live/Spends" },
     { id: "warnings", label: "Early Warning Signals" },
     { id: "demo", label: "Eligibility Demo" },
+    { id: "upload", label: "Upload Data" },
   ];
 
   return (
@@ -123,6 +125,10 @@ const Index = () => {
             
             {activeTab === "demo" && (
               <EligibilityDemo />
+            )}
+            
+            {activeTab === "upload" && (
+              <MerchantDataUpload />
             )}
           </div>
         </div>
