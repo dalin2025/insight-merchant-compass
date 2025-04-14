@@ -7,6 +7,7 @@ import { evaluateEligibility } from "@/utils/eligibilityUtils";
 import EnhancedEligibilityTab from "./EnhancedEligibilityTab";
 import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
+import { Switch } from "@/components/ui/switch";
 
 // Default merchant data for demonstration
 const defaultMerchantData: MerchantData = {
@@ -17,7 +18,8 @@ const defaultMerchantData: MerchantData = {
   businessType: "Private Limited",
   averageMonthlyGMV: 3000000, // 30 lakhs
   qoqGrowth: 5,
-  activeDays: 180
+  activeDays: 180,
+  isProfitable: true
 };
 
 const EligibilityDemo = () => {
@@ -132,6 +134,19 @@ const EligibilityDemo = () => {
                     <option key={category} value={category}>{category.replace(/_/g, ' ')}</option>
                   ))}
                 </select>
+              </div>
+              
+              <div className="space-y-2 col-span-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Is Profitable</label>
+                  <Switch
+                    checked={merchantData.isProfitable || false}
+                    onCheckedChange={(checked) => updateMerchantData('isProfitable', checked)}
+                  />
+                </div>
+                <p className="text-xs text-gray-500">
+                  Current: {merchantData.isProfitable ? 'Profitable' : 'Not profitable'}
+                </p>
               </div>
             </div>
           </form>

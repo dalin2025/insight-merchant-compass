@@ -36,5 +36,6 @@ export interface MerchantData {
   averageMonthlyGMV: number; // in rupees
   qoqGrowth: number; // in percentage
   activeDays: number;
+  isProfitable?: boolean; // new field for profitability status
   // Add other merchant data fields as needed
 }

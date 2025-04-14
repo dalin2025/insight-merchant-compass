@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +5,7 @@ import { MerchantData } from '@/types/eligibility';
 import { evaluateEligibility } from '@/utils/eligibilityUtils';
 import EnhancedEligibilityTab from './EnhancedEligibilityTab';
 import { toast } from "sonner";
+import { downloadCSVTemplate } from '@/utils/merchantDataUploadUtils';
 
 const MerchantDataUpload = () => {
   const [uploadedMerchants, setUploadedMerchants] = useState<MerchantData[]>([]);
@@ -103,6 +103,11 @@ const MerchantDataUpload = () => {
         }
       }
       
+      // Ensure isProfitable is boolean if present
+      if ('isProfitable' in merchant && typeof merchant.isProfitable !== 'boolean') {
+        merchant.isProfitable = merchant.isProfitable === true || merchant.isProfitable === 'true';
+      }
+      
       validMerchants.push(merchant as MerchantData);
     });
     
@@ -127,13 +132,21 @@ const MerchantDataUpload = () => {
               <label htmlFor="merchant-file" className="text-sm font-medium">
                 Upload JSON or CSV file with merchant data
               </label>
-              <input
-                id="merchant-file"
-                type="file"
-                accept=".json,.csv"
-                onChange={handleFileUpload}
-                className="border rounded-md p-2"
-              />
+              <div className="flex gap-2">
+                <input
+                  id="merchant-file"
+                  type="file"
+                  accept=".json,.csv"
+                  onChange={handleFileUpload}
+                  className="border rounded-md p-2 flex-1"
+                />
+                <Button 
+                  variant="outline"
+                  onClick={() => downloadCSVTemplate()}
+                >
+                  Download Template
+                </Button>
+              </div>
               <div className="text-xs text-gray-500">
                 File must contain merchant data with at least: mid, businessCategory, pgVintage, businessType, averageMonthlyGMV, qoqGrowth, activeDays
               </div>

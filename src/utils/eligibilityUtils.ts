@@ -120,13 +120,15 @@ export const evaluateRBLPolicy = (merchant: MerchantData): Policy => {
  */
 export const calculateLimit = (merchant: MerchantData, policy: Policy): string => {
   if (policy.id === "ybl") {
-    // YBL limit calculation: 10% of average monthly GMV, max 5 lakhs
-    const limit = Math.min(merchant.averageMonthlyGMV * 0.1, 500000);
+    // YBL limit calculation: 25% of average monthly GMV
+    // Max 30 lacs for unprofitable companies and 3 cr for profitable companies
+    const baseLimit = merchant.averageMonthlyGMV * 0.25;
+    const maxLimit = merchant.isProfitable ? 30000000 : 3000000; // 3 cr or 30 lacs
+    const limit = Math.min(baseLimit, maxLimit);
     return formatCurrency(limit);
   } else if (policy.id === "rbl") {
-    // RBL limit calculation: 15% of average monthly GMV, max 10 lakhs
-    const limit = Math.min(merchant.averageMonthlyGMV * 0.15, 1000000);
-    return formatCurrency(limit);
+    // RBL policy now uses a fixed message instead of a calculation
+    return "Eligible but limit will be based on total underwriting";
   }
   return "₹0";
 };
@@ -162,13 +164,16 @@ export const evaluateEligibility = (merchant: MerchantData): EligibilityResult =
   let primaryPolicy: Policy | undefined;
   let highestLimit = 0;
   
-  matchingPolicies.forEach(policy => {
-    const limitValue = parseFloat(calculateLimit(merchant, policy).replace(/[^\d]/g, ''));
-    if (limitValue > highestLimit) {
-      highestLimit = limitValue;
-      primaryPolicy = policy;
+  // For RBL policy which doesn't have a numerical limit, prioritize YBL if eligible
+  if (matchingPolicies.length > 0) {
+    const yblPolicy = matchingPolicies.find(policy => policy.id === "ybl");
+    if (yblPolicy) {
+      primaryPolicy = yblPolicy;
+    } else {
+      // If YBL is not eligible, use the first eligible policy
+      primaryPolicy = matchingPolicies[0];
     }
-  });
+  }
   
   // Calculate limit based on primary policy
   const calculatedLimit = primaryPolicy 
