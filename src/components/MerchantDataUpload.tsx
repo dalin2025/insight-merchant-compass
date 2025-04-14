@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MerchantData } from '@/types/eligibility';
+import { MerchantData, WarningSignals } from '@/types/eligibility';
 import { evaluateEligibility } from '@/utils/eligibilityUtils';
 import EnhancedEligibilityTab from './EnhancedEligibilityTab';
 import { toast } from "sonner";
@@ -38,14 +37,12 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
   const [spendsFiles, setSpendsFiles] = useState<UploadedFile[]>([]);
   const [warningsFiles, setWarningsFiles] = useState<UploadedFile[]>([]);
 
-  // Track uploaded application data separately
   const [applicationData, setApplicationData] = useState<Array<{
     mid: string;
     status: string;
     bankComments?: string[];
   }>>([]);
   
-  // Track uploaded spends data separately
   const [spendsData, setSpendData] = useState<Array<{
     mid: string;
     totalSpend: string;
@@ -53,16 +50,14 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     monthlySpends: Array<{month: string; amount: number}>;
   }>>([]);
   
-  // Track uploaded warnings data separately
   const [warningsData, setWarningsData] = useState<Array<{
     mid: string;
-    riskFlag: string;
+    riskFlag: "high" | "medium" | "low";
     gmvDrop: number;
     spendsDrop: number;
-    internalTriggers: Array<{name: string; severity: string; details: string}>;
+    internalTriggers: Array<{name: string; severity: "high" | "medium" | "low"; details: string}>;
   }>>([]);
   
-  // Track latest uploaded file for each category
   const [lastSavedFiles, setLastSavedFiles] = useState<{
     basic: UploadedFile | null,
     application: UploadedFile | null,
@@ -157,7 +152,6 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
       ...prev
     ].slice(0, 5));
     
-    // Update the current file for this type
     setLastSavedFiles(prev => ({
       ...prev,
       [fileType]: newFile
@@ -329,7 +323,6 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
       updatedCount++;
     });
 
-    // Store the valid application data separately
     setApplicationData(validAppData);
 
     if (updatedCount > 0) {
@@ -403,7 +396,6 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
       updatedCount++;
     });
 
-    // Store the valid spends data separately
     setSpendData(validSpendsData);
 
     if (updatedCount > 0) {
@@ -424,10 +416,10 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     const updatedMerchants = [...uploadedMerchants];
     const validWarningsData: Array<{
       mid: string;
-      riskFlag: string;
+      riskFlag: "high" | "medium" | "low";
       gmvDrop: number;
       spendsDrop: number;
-      internalTriggers: Array<{name: string; severity: string; details: string}>;
+      internalTriggers: Array<{name: string; severity: "high" | "medium" | "low"; details: string}>;
     }> = [];
 
     warningData.forEach(data => {
@@ -442,30 +434,43 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         return;
       }
 
-      const validRiskLevels = ["high", "medium", "low"];
+      const validRiskLevels = ["high", "medium", "low"] as const;
       if (data.riskFlag && !validRiskLevels.includes(data.riskFlag)) {
         toast.warning(`Invalid riskFlag "${data.riskFlag}" for merchant ${data.mid}`);
         return;
       }
 
-      let internalTriggers: Array<{name: string; severity: string; details: string}> = [];
+      let internalTriggers: Array<{name: string; severity: "high" | "medium" | "low"; details: string}> = [];
       if (data.internalTriggers) {
         if (!Array.isArray(data.internalTriggers)) {
           toast.warning(`Invalid internalTriggers format for merchant ${data.mid}`);
           return;
         }
         
-        internalTriggers = data.internalTriggers.filter((trigger: any) => 
-          typeof trigger === 'object' && 
-          typeof trigger.name === 'string' && 
-          validRiskLevels.includes(trigger.severity) &&
-          typeof trigger.details === 'string'
-        );
+        const parsedTriggers = [];
+        for (const trigger of data.internalTriggers) {
+          if (typeof trigger !== 'object') {
+            continue;
+          }
+          
+          const severity = trigger.severity;
+          if (!validRiskLevels.includes(severity)) {
+            toast.warning(`Invalid severity "${severity}" in trigger for merchant ${data.mid}`);
+            continue;
+          }
+          
+          parsedTriggers.push({
+            name: trigger.name || '',
+            severity: severity as "high" | "medium" | "low",
+            details: trigger.details || ''
+          });
+        }
+        internalTriggers = parsedTriggers;
       }
 
       const validWarningItem = {
         mid: data.mid,
-        riskFlag: data.riskFlag || "low",
+        riskFlag: (data.riskFlag || "low") as "high" | "medium" | "low",
         gmvDrop: typeof data.gmvDrop === 'number' ? data.gmvDrop : 0,
         spendsDrop: typeof data.spendsDrop === 'number' ? data.spendsDrop : 0,
         internalTriggers: internalTriggers
@@ -480,7 +485,6 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
       updatedCount++;
     });
 
-    // Store the valid warnings data separately
     setWarningsData(validWarningsData);
 
     if (updatedCount > 0) {
@@ -542,7 +546,6 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     );
   };
 
-  // Application Data Table component
   const ApplicationDataTable = () => {
     if (applicationData.length === 0) return (
       <div className="text-sm text-gray-500 mt-4">
@@ -596,7 +599,6 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     );
   };
 
-  // Spends Data Table component
   const SpendsDataTable = () => {
     if (spendsData.length === 0) return (
       <div className="text-sm text-gray-500 mt-4">
@@ -652,7 +654,6 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     );
   };
 
-  // Warnings Data Table component
   const WarningsDataTable = () => {
     if (warningsData.length === 0) return (
       <div className="text-sm text-gray-500 mt-4">

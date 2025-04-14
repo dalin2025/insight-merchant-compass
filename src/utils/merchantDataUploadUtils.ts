@@ -1,4 +1,3 @@
-
 import { BusinessCategory, MerchantData } from "@/types/eligibility";
 
 export const CSV_TEMPLATE_HEADERS = [
@@ -78,7 +77,6 @@ export const downloadCSVTemplate = () => {
   document.body.removeChild(link);
 };
 
-// Modified function for simpler spends data template
 export const downloadSpendsTemplate = () => {
   const content = `mid,totalSpend,spendTrend,month1,amount1,month2,amount2,month3,amount3
 RZPM10098765,₹175000,increasing,Jan,45000,Feb,52000,Mar,78000`;
