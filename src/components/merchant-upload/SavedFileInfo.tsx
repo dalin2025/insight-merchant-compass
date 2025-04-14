@@ -6,10 +6,11 @@ import { UploadedFile } from './FileHistoryDisplay';
 interface SavedFileInfoProps {
   file: UploadedFile | null;
   dataSaved: boolean;
+  preserveData?: boolean;
 }
 
-const SavedFileInfo: React.FC<SavedFileInfoProps> = ({ file, dataSaved }) => {
-  if (!file || !dataSaved) return null;
+const SavedFileInfo: React.FC<SavedFileInfoProps> = ({ file, dataSaved, preserveData = false }) => {
+  if (!file || (!dataSaved && !preserveData)) return null;
   
   return (
     <div className="mt-4 p-3 bg-green-50 border border-green-100 rounded-md flex items-center gap-2">

@@ -63,7 +63,7 @@ const ApplicationTab: React.FC<ApplicationTabProps> = ({
           Save Data
         </Button>
       </div>
-      <SavedFileInfo file={lastSavedFile} dataSaved={dataSaved} />
+      <SavedFileInfo file={lastSavedFile} dataSaved={dataSaved} preserveData={true} />
       <FileHistoryDisplay files={applicationFiles} />
       <ApplicationDataTable data={applicationData} />
     </div>
