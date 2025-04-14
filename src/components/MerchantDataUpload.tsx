@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MerchantData } from '@/types/eligibility';
@@ -8,13 +7,11 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UploadedFile } from './merchant-upload/FileHistoryDisplay';
 
-// Import the refactored components
 import BasicInfoTab from './merchant-upload/BasicInfoTab';
 import ApplicationTab from './merchant-upload/ApplicationTab';
 import SpendsTab from './merchant-upload/SpendsTab';
 import WarningsTab from './merchant-upload/WarningsTab';
 
-// Import utility functions
 import { parseCSV } from './merchant-upload/parseUtils';
 
 interface MerchantDataUploadProps {
@@ -260,9 +257,9 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     });
 
     setApplicationData(validAppData);
+    setUploadedMerchants(updatedMerchants); // Update the local state immediately
 
     if (updatedCount > 0) {
-      setUploadedMerchants(updatedMerchants);
       toast.success(`Updated application data for ${updatedCount} merchants`);
     } else {
       toast.error("No merchant data was updated");
@@ -432,9 +429,14 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
   };
   
   const handleSaveData = () => {
+    localStorage.setItem("uploadedMerchantData", JSON.stringify(uploadedMerchants));
     onMerchantDataSave(uploadedMerchants);
     toast.success("Merchant data saved successfully!");
     setDataSaved(true);
+  };
+
+  const handleApplicationSaveData = () => {
+    handleSaveData();
   };
 
   return (
@@ -473,7 +475,7 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
                 dataSaved={dataSaved}
                 applicationData={applicationData}
                 onFileUpload={(e) => handleFileUpload(e, "application")}
-                onSaveData={handleSaveData}
+                onSaveData={handleApplicationSaveData}
               />
             </TabsContent>
             

@@ -30,6 +30,8 @@ const ApplicationTab: React.FC<ApplicationTabProps> = ({
   onFileUpload,
   onSaveData
 }) => {
+  const hasData = applicationData.length > 0;
+  
   return (
     <div className="flex flex-col space-y-2">
       <label htmlFor="application-file" className="text-sm font-medium">
@@ -55,17 +57,28 @@ const ApplicationTab: React.FC<ApplicationTabProps> = ({
       <div className="text-xs text-gray-500">
         File must contain application data with at least: mid, status (not-started, in-progress, approved, rejected), bankComments (array)
       </div>
-      <div className="mt-4 flex justify-end">
-        <Button 
-          onClick={onSaveData}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          Save Data
-        </Button>
-      </div>
+      
+      {hasData && (
+        <div className="mt-4 flex justify-end">
+          <Button 
+            onClick={onSaveData}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            Save Data
+          </Button>
+        </div>
+      )}
+      
       <SavedFileInfo file={lastSavedFile} dataSaved={dataSaved} preserveData={true} />
       <FileHistoryDisplay files={applicationFiles} />
-      <ApplicationDataTable data={applicationData} />
+      
+      {applicationData.length > 0 ? (
+        <ApplicationDataTable data={applicationData} />
+      ) : (
+        <div className="text-center py-6 text-gray-500">
+          No application data uploaded
+        </div>
+      )}
     </div>
   );
 };

@@ -25,7 +25,13 @@ const Index = () => {
     const savedMerchants = localStorage.getItem(MERCHANT_DATA_STORAGE_KEY);
     if (savedMerchants) {
       try {
-        setUploadedMerchants(JSON.parse(savedMerchants));
+        const parsedData = JSON.parse(savedMerchants);
+        
+        // Ensure that the data is an array
+        if (Array.isArray(parsedData)) {
+          setUploadedMerchants(parsedData);
+          console.log("Loaded merchant data from localStorage:", parsedData.length, "merchants");
+        }
       } catch (error) {
         console.error("Error loading saved merchant data", error);
       }
@@ -53,6 +59,8 @@ const Index = () => {
 
   const handleMerchantDataSave = (merchants: MerchantData[]) => {
     setUploadedMerchants(merchants);
+    
+    // Save to localStorage for data persistence
     localStorage.setItem(MERCHANT_DATA_STORAGE_KEY, JSON.stringify(merchants));
   };
 
