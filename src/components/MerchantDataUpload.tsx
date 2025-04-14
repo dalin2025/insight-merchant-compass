@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MerchantData } from '@/types/eligibility';
@@ -7,14 +8,28 @@ import EnhancedEligibilityTab from './EnhancedEligibilityTab';
 import { toast } from "sonner";
 import { downloadCSVTemplate } from '@/utils/merchantDataUploadUtils';
 
-const MerchantDataUpload = () => {
+interface MerchantDataUploadProps {
+  savedMerchants: MerchantData[];
+  onMerchantDataSave: (merchants: MerchantData[]) => void;
+}
+
+const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantDataUploadProps) => {
   const [uploadedMerchants, setUploadedMerchants] = useState<MerchantData[]>([]);
   const [selectedMerchant, setSelectedMerchant] = useState<MerchantData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Initialize with saved data
+  useEffect(() => {
+    if (savedMerchants.length > 0) {
+      setUploadedMerchants(savedMerchants);
+    }
+  }, [savedMerchants]);
   
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     
+    setIsLoading(true);
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
@@ -38,6 +53,8 @@ const MerchantDataUpload = () => {
       } catch (error) {
         console.error("Error processing file:", error);
         toast.error("Failed to process file. Please check the format.");
+      } finally {
+        setIsLoading(false);
       }
     };
     
@@ -47,6 +64,7 @@ const MerchantDataUpload = () => {
       reader.readAsText(file);
     } else {
       toast.error("Unsupported file format. Please upload JSON or CSV files.");
+      setIsLoading(false);
     }
   };
   
@@ -111,8 +129,25 @@ const MerchantDataUpload = () => {
       return;
     }
     
-    setUploadedMerchants(validMerchants);
+    const updatedMerchants = [...uploadedMerchants];
+    
+    // Update existing merchants or add new ones
+    validMerchants.forEach(newMerchant => {
+      const existingIndex = updatedMerchants.findIndex(m => m.mid === newMerchant.mid);
+      if (existingIndex >= 0) {
+        updatedMerchants[existingIndex] = newMerchant;
+      } else {
+        updatedMerchants.push(newMerchant);
+      }
+    });
+    
+    setUploadedMerchants(updatedMerchants);
     toast.success(`Successfully loaded ${validMerchants.length} merchant records`);
+  };
+  
+  const handleSaveData = () => {
+    onMerchantDataSave(uploadedMerchants);
+    toast.success("Merchant data saved successfully!");
   };
   
   return (
@@ -149,7 +184,15 @@ const MerchantDataUpload = () => {
             
             {uploadedMerchants.length > 0 && (
               <div className="space-y-4 mt-6">
-                <h3 className="font-medium">Uploaded Merchants ({uploadedMerchants.length})</h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="font-medium">Uploaded Merchants ({uploadedMerchants.length})</h3>
+                  <Button 
+                    onClick={handleSaveData}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Save Data
+                  </Button>
+                </div>
                 <div className="max-h-72 overflow-y-auto border rounded-md">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 sticky top-0">

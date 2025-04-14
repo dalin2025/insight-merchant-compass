@@ -1,68 +1,66 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardHeader from "@/components/DashboardHeader";
 import TabNavigation from "@/components/TabNavigation";
 import EnhancedEligibilityTab from "@/components/EnhancedEligibilityTab";
-import EligibilityDemo from "@/components/EligibilityDemo";
 import ApplicationStatusTab from "@/components/ApplicationStatusTab";
 import LiveSpendsTab from "@/components/LiveSpendsTab";
 import EarlyWarningTab from "@/components/EarlyWarningTab";
 import MerchantSearchBar from "@/components/MerchantSearchBar";
 import MerchantDataUpload from "@/components/MerchantDataUpload";
 import { evaluateEligibility } from "@/utils/eligibilityUtils";
+import { MerchantData } from "@/types/eligibility";
 
-// Mock data - in real app this would come from API
-const merchantData = {
-  mid: "RZPM10098765",
-  name: "Tech Solutions Pvt. Ltd.",
-  businessCategory: "technology_services",
-  pgVintage: 12,
-  businessType: "Private Limited" as const,
-  averageMonthlyGMV: 3000000, // 30 lakhs
-  qoqGrowth: 5,
-  activeDays: 180,
-  application: {
-    status: "in-progress" as const,
-    bankComments: ["KYC documents verified successfully.", "Business profile meets bank requirements."],
-  },
-  spends: {
-    totalSpend: "₹1,75,000",
-    spendTrend: "increasing" as const,
-    monthlySpends: [
-      { month: "Jan", amount: 45000 },
-      { month: "Feb", amount: 52000 },
-      { month: "Mar", amount: 78000 },
-    ],
-  },
-  warnings: {
-    riskFlag: "medium" as const,
-    gmvDrop: 15,
-    spendsDrop: 8,
-    internalTriggers: [
-      {
-        name: "Delayed Payment",
-        severity: "high" as const,
-        details: "2 payments delayed by more than 5 days in the last month",
-      },
-      {
-        name: "Ticket Escalation",
-        severity: "low" as const,
-        details: "1 support ticket escalated in the last 3 months",
-      },
-    ],
-  },
-};
+// Local storage key for storing merchant data
+const MERCHANT_DATA_STORAGE_KEY = "uploadedMerchantData";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("eligibility");
-  const eligibilityResult = evaluateEligibility(merchantData);
+  const [merchantData, setMerchantData] = useState<MerchantData | null>(null);
+  const [uploadedMerchants, setUploadedMerchants] = useState<MerchantData[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Load saved merchant data from localStorage on component mount
+  useEffect(() => {
+    const savedMerchants = localStorage.getItem(MERCHANT_DATA_STORAGE_KEY);
+    if (savedMerchants) {
+      try {
+        setUploadedMerchants(JSON.parse(savedMerchants));
+      } catch (error) {
+        console.error("Error loading saved merchant data", error);
+      }
+    }
+  }, []);
+
+  const handleMerchantSearch = (term: string) => {
+    setSearchTerm(term);
+    if (term.trim() === "") {
+      setMerchantData(null);
+      return;
+    }
+    
+    const foundMerchant = uploadedMerchants.find(
+      m => m.mid.toLowerCase().includes(term.toLowerCase()) || 
+           (m.name && m.name.toLowerCase().includes(term.toLowerCase()))
+    );
+    
+    if (foundMerchant) {
+      setMerchantData(foundMerchant);
+    } else {
+      setMerchantData(null);
+    }
+  };
+
+  const handleMerchantDataSave = (merchants: MerchantData[]) => {
+    setUploadedMerchants(merchants);
+    localStorage.setItem(MERCHANT_DATA_STORAGE_KEY, JSON.stringify(merchants));
+  };
 
   const tabs = [
     { id: "eligibility", label: "Eligibility" },
     { id: "application", label: "Application Status" },
     { id: "spends", label: "Live/Spends" },
     { id: "warnings", label: "Early Warning Signals" },
-    { id: "demo", label: "Eligibility Demo" },
     { id: "upload", label: "Upload Data" },
   ];
 
@@ -77,13 +75,21 @@ const Index = () => {
               <div>
                 <h2 className="text-xl font-bold text-razorpay-dark">Merchant Dashboard</h2>
                 <div className="flex items-center mt-1 space-x-2">
-                  <p className="text-sm text-gray-500">MID: {merchantData.mid}</p>
-                  <span className="text-gray-300">|</span>
-                  <p className="text-sm text-gray-500">{merchantData.name}</p>
+                  {merchantData && (
+                    <>
+                      <p className="text-sm text-gray-500">MID: {merchantData.mid}</p>
+                      <span className="text-gray-300">|</span>
+                      <p className="text-sm text-gray-500">{merchantData.name || "Unnamed Merchant"}</p>
+                    </>
+                  )}
+                  {!merchantData && <p className="text-sm text-gray-500">No merchant selected</p>}
                 </div>
               </div>
               <div className="w-64">
-                <MerchantSearchBar />
+                <MerchantSearchBar 
+                  onSearch={handleMerchantSearch}
+                  searchTerm={searchTerm}
+                />
               </div>
             </div>
           </div>
@@ -96,39 +102,46 @@ const Index = () => {
           
           <div className="p-6">
             {activeTab === "eligibility" && (
-              <EnhancedEligibilityTab eligibilityResult={eligibilityResult} />
+              merchantData ? (
+                <EnhancedEligibilityTab eligibilityResult={evaluateEligibility(merchantData)} />
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">
+                    {searchTerm ? "No merchant found with this MID" : "Please search for a merchant by MID"}
+                  </p>
+                </div>
+              )
             )}
             
             {activeTab === "application" && (
               <ApplicationStatusTab 
-                status={merchantData.application.status}
-                bankComments={merchantData.application.bankComments}
+                status={merchantData?.application?.status || "not-started"}
+                bankComments={merchantData?.application?.bankComments || []}
               />
             )}
             
             {activeTab === "spends" && (
               <LiveSpendsTab 
-                totalSpend={merchantData.spends.totalSpend}
-                spendTrend={merchantData.spends.spendTrend}
-                monthlySpends={merchantData.spends.monthlySpends}
+                totalSpend={merchantData?.spends?.totalSpend || "₹0"}
+                spendTrend={merchantData?.spends?.spendTrend || "stable"}
+                monthlySpends={merchantData?.spends?.monthlySpends || []}
               />
             )}
             
             {activeTab === "warnings" && (
               <EarlyWarningTab 
-                riskFlag={merchantData.warnings.riskFlag}
-                gmvDrop={merchantData.warnings.gmvDrop}
-                spendsDrop={merchantData.warnings.spendsDrop}
-                internalTriggers={merchantData.warnings.internalTriggers}
+                riskFlag={merchantData?.warnings?.riskFlag || "low"}
+                gmvDrop={merchantData?.warnings?.gmvDrop || 0}
+                spendsDrop={merchantData?.warnings?.spendsDrop || 0}
+                internalTriggers={merchantData?.warnings?.internalTriggers || []}
               />
             )}
             
-            {activeTab === "demo" && (
-              <EligibilityDemo />
-            )}
-            
             {activeTab === "upload" && (
-              <MerchantDataUpload />
+              <MerchantDataUpload 
+                savedMerchants={uploadedMerchants}
+                onMerchantDataSave={handleMerchantDataSave}
+              />
             )}
           </div>
         </div>
