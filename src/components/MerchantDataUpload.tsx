@@ -1,28 +1,25 @@
+
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MerchantData, WarningSignals } from '@/types/eligibility';
+import { MerchantData } from '@/types/eligibility';
 import { evaluateEligibility } from '@/utils/eligibilityUtils';
 import EnhancedEligibilityTab from './EnhancedEligibilityTab';
 import { toast } from "sonner";
-import { 
-  downloadCSVTemplate, 
-  downloadSpendsTemplate, 
-  downloadApplicationTemplate,
-  downloadWarningsTemplate
-} from '@/utils/merchantDataUploadUtils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileIcon, CheckCircle2 } from "lucide-react";
+import { UploadedFile } from './merchant-upload/FileHistoryDisplay';
+
+// Import the refactored components
+import BasicInfoTab from './merchant-upload/BasicInfoTab';
+import ApplicationTab from './merchant-upload/ApplicationTab';
+import SpendsTab from './merchant-upload/SpendsTab';
+import WarningsTab from './merchant-upload/WarningsTab';
+
+// Import utility functions
+import { parseCSV } from './merchant-upload/parseUtils';
 
 interface MerchantDataUploadProps {
   savedMerchants: MerchantData[];
   onMerchantDataSave: (merchants: MerchantData[]) => void;
-}
-
-interface UploadedFile {
-  name: string;
-  size: number;
-  date: Date;
 }
 
 const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantDataUploadProps) => {
@@ -156,67 +153,6 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
       ...prev,
       [fileType]: newFile
     }));
-  };
-  
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' bytes';
-    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1048576).toFixed(1) + ' MB';
-  };
-  
-  const parseCSV = (csvContent: string, isSpendData = false): any[] => {
-    const lines = csvContent.split('\n');
-    const headers = lines[0].split(',').map(header => header.trim());
-    
-    if (isSpendData) {
-      return parseSimplifiedSpendCSV(csvContent);
-    }
-    
-    return lines.slice(1).filter(line => line.trim()).map(line => {
-      const values = line.split(',').map(value => value.trim());
-      const data: Record<string, any> = {};
-      
-      headers.forEach((header, index) => {
-        let value = values[index];
-        
-        if (/^\d+(\.\d+)?$/.test(value)) {
-          data[header] = parseFloat(value);
-        } else if (value === 'true' || value === 'false') {
-          data[header] = value === 'true';
-        } else {
-          data[header] = value;
-        }
-      });
-      
-      return data;
-    });
-  };
-  
-  const parseSimplifiedSpendCSV = (csvContent: string): any[] => {
-    const lines = csvContent.split('\n');
-    const headers = lines[0].split(',').map(header => header.trim());
-    
-    return lines.slice(1).filter(line => line.trim()).map(line => {
-      const values = line.split(',').map(value => value.trim());
-      const data: Record<string, any> = {};
-      
-      data.mid = values[0];
-      data.totalSpend = values[1];
-      data.spendTrend = values[2];
-      
-      const monthlySpends = [];
-      for (let i = 3; i < values.length; i += 2) {
-        if (values[i] && values[i+1]) {
-          monthlySpends.push({
-            month: values[i],
-            amount: parseFloat(values[i+1]) || 0
-          });
-        }
-      }
-      
-      data.monthlySpends = monthlySpends;
-      return data;
-    });
   };
   
   const validateAndSetMerchants = (merchants: Partial<MerchantData>[]) => {
@@ -501,227 +437,6 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     setDataSaved(true);
   };
 
-  const FileHistory = ({ files }: { files: UploadedFile[] }) => {
-    if (files.length === 0) return (
-      <div className="text-sm text-gray-500 mt-4">
-        No files uploaded yet
-      </div>
-    );
-    
-    return (
-      <div className="mt-4 space-y-2">
-        <h4 className="text-sm font-medium">Recently Uploaded Files:</h4>
-        <div className="space-y-2">
-          {files.map((file, index) => (
-            <div key={index} className="flex items-center gap-2 p-2 rounded-md bg-gray-50 border text-sm">
-              <FileIcon className="h-4 w-4 text-gray-500" />
-              <div className="flex-1 truncate">
-                <div className="font-medium truncate">{file.name}</div>
-                <div className="text-xs text-gray-500">
-                  {formatFileSize(file.size)} • {file.date.toLocaleString()}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const SavedFileInfo = ({ fileType }: { fileType: 'basic' | 'application' | 'spends' | 'warnings' }) => {
-    const file = lastSavedFiles[fileType];
-    
-    if (!file || !dataSaved) return null;
-    
-    return (
-      <div className="mt-4 p-3 bg-green-50 border border-green-100 rounded-md flex items-center gap-2">
-        <CheckCircle2 className="h-5 w-5 text-green-500" />
-        <div className="flex-1">
-          <div className="text-sm font-medium text-green-700">Data saved successfully</div>
-          <div className="text-xs text-green-600">
-            File: {file.name} • {formatFileSize(file.size)} • Saved on {file.date.toLocaleString()}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const ApplicationDataTable = () => {
-    if (applicationData.length === 0) return (
-      <div className="text-sm text-gray-500 mt-4">
-        No application data uploaded
-      </div>
-    );
-    
-    return (
-      <div className="mt-4">
-        <h4 className="text-sm font-medium mb-2">Uploaded Application Data:</h4>
-        <div className="border rounded-md overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">MID</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Bank Comments</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {applicationData.map((item, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 text-sm">{item.mid}</td>
-                  <td className="px-4 py-2 text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      item.status === "approved" ? "bg-green-100 text-green-800" :
-                      item.status === "rejected" ? "bg-red-100 text-red-800" :
-                      item.status === "in-progress" ? "bg-blue-100 text-blue-800" :
-                      "bg-gray-100 text-gray-800"
-                    }`}>
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 text-sm">
-                    {item.bankComments && item.bankComments.length > 0 ? (
-                      <ul className="list-disc pl-4">
-                        {item.bankComments.map((comment, i) => (
-                          <li key={i}>{comment}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      "No comments"
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
-
-  const SpendsDataTable = () => {
-    if (spendsData.length === 0) return (
-      <div className="text-sm text-gray-500 mt-4">
-        No spends data uploaded
-      </div>
-    );
-    
-    return (
-      <div className="mt-4">
-        <h4 className="text-sm font-medium mb-2">Uploaded Spends Data:</h4>
-        <div className="border rounded-md overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">MID</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Spend</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Trend</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Monthly Spends</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {spendsData.map((item, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 text-sm">{item.mid}</td>
-                  <td className="px-4 py-2 text-sm">{item.totalSpend}</td>
-                  <td className="px-4 py-2 text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      item.spendTrend === "increasing" ? "bg-green-100 text-green-800" :
-                      item.spendTrend === "decreasing" ? "bg-red-100 text-red-800" :
-                      item.spendTrend === "stable" ? "bg-blue-100 text-blue-800" :
-                      "bg-gray-100 text-gray-800"
-                    }`}>
-                      {item.spendTrend}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 text-sm">
-                    {item.monthlySpends && item.monthlySpends.length > 0 ? (
-                      <ul className="list-none space-y-1">
-                        {item.monthlySpends.map((spend, i) => (
-                          <li key={i}>{spend.month}: ₹{spend.amount}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      "No monthly data"
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
-
-  const WarningsDataTable = () => {
-    if (warningsData.length === 0) return (
-      <div className="text-sm text-gray-500 mt-4">
-        No warnings data uploaded
-      </div>
-    );
-    
-    return (
-      <div className="mt-4">
-        <h4 className="text-sm font-medium mb-2">Uploaded Warning Signals Data:</h4>
-        <div className="border rounded-md overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">MID</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Risk Flag</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">GMV Drop %</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Spends Drop %</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Internal Triggers</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {warningsData.map((item, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 text-sm">{item.mid}</td>
-                  <td className="px-4 py-2 text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      item.riskFlag === "high" ? "bg-red-100 text-red-800" :
-                      item.riskFlag === "medium" ? "bg-yellow-100 text-yellow-800" :
-                      "bg-green-100 text-green-800"
-                    }`}>
-                      {item.riskFlag}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 text-sm">{item.gmvDrop}%</td>
-                  <td className="px-4 py-2 text-sm">{item.spendsDrop}%</td>
-                  <td className="px-4 py-2 text-sm">
-                    {item.internalTriggers && item.internalTriggers.length > 0 ? (
-                      <ul className="list-disc pl-4">
-                        {item.internalTriggers.map((trigger, i) => (
-                          <li key={i} className="mb-1">
-                            <div className="font-medium">{trigger.name}</div>
-                            <div className="text-xs">
-                              <span className={`px-1 rounded ${
-                                trigger.severity === "high" ? "bg-red-100 text-red-800" :
-                                trigger.severity === "medium" ? "bg-yellow-100 text-yellow-800" :
-                                "bg-green-100 text-green-800"
-                              }`}>
-                                {trigger.severity}
-                              </span>
-                              {" - "}{trigger.details}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      "No triggers"
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-6">
       <Card>
@@ -738,196 +453,52 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
             </TabsList>
             
             <TabsContent value="basic">
-              <div className="flex flex-col space-y-2">
-                <label htmlFor="merchant-file" className="text-sm font-medium">
-                  Upload JSON or CSV file with merchant basic data
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id="merchant-file"
-                    type="file"
-                    accept=".json,.csv"
-                    onChange={(e) => handleFileUpload(e, "basic")}
-                    className="border rounded-md p-2 flex-1"
-                    disabled={isLoading}
-                  />
-                  <Button 
-                    variant="outline"
-                    onClick={() => downloadCSVTemplate()}
-                    disabled={isLoading}
-                  >
-                    Download Template
-                  </Button>
-                </div>
-                <div className="text-xs text-gray-500">
-                  File must contain merchant data with at least: mid, businessCategory, pgVintage, businessType, averageMonthlyGMV, qoqGrowth, activeDays
-                </div>
-                <SavedFileInfo fileType="basic" />
-                <FileHistory files={basicFiles} />
-                
-                {uploadedMerchants.length > 0 && (
-                  <div className="space-y-4 mt-6">
-                    <div className="flex justify-between items-center">
-                      <h3 className="font-medium">Uploaded Merchants ({uploadedMerchants.length})</h3>
-                      <Button 
-                        onClick={handleSaveData}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        Save Data
-                      </Button>
-                    </div>
-                    <div className="max-h-72 overflow-y-auto border rounded-md">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50 sticky top-0">
-                          <tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">MID</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Business Type</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Avg Monthly GMV</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {uploadedMerchants.map((merchant) => (
-                            <tr key={merchant.mid} className="hover:bg-gray-50">
-                              <td className="px-4 py-2 text-sm">{merchant.mid}</td>
-                              <td className="px-4 py-2 text-sm">{merchant.name || 'N/A'}</td>
-                              <td className="px-4 py-2 text-sm">{merchant.businessType}</td>
-                              <td className="px-4 py-2 text-sm">₹{merchant.averageMonthlyGMV.toLocaleString()}</td>
-                              <td className="px-4 py-2 text-sm">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  onClick={() => setSelectedMerchant(merchant)}
-                                >
-                                  Check Eligibility
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <BasicInfoTab
+                isLoading={isLoading}
+                uploadedMerchants={uploadedMerchants}
+                basicFiles={basicFiles}
+                lastSavedFile={lastSavedFiles.basic}
+                dataSaved={dataSaved}
+                onFileUpload={(e) => handleFileUpload(e, "basic")}
+                onSaveData={handleSaveData}
+                onSelectMerchant={setSelectedMerchant}
+              />
             </TabsContent>
             
             <TabsContent value="application">
-              <div className="flex flex-col space-y-2">
-                <label htmlFor="application-file" className="text-sm font-medium">
-                  Upload JSON or CSV file with application status data
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id="application-file"
-                    type="file"
-                    accept=".json,.csv"
-                    onChange={(e) => handleFileUpload(e, "application")}
-                    className="border rounded-md p-2 flex-1"
-                    disabled={isLoading}
-                  />
-                  <Button 
-                    variant="outline"
-                    onClick={downloadApplicationTemplate}
-                    disabled={isLoading}
-                  >
-                    Download Template
-                  </Button>
-                </div>
-                <div className="text-xs text-gray-500">
-                  File must contain application data with at least: mid, status (not-started, in-progress, approved, rejected), bankComments (array)
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <Button 
-                    onClick={handleSaveData}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    Save Data
-                  </Button>
-                </div>
-                <SavedFileInfo fileType="application" />
-                <FileHistory files={applicationFiles} />
-                <ApplicationDataTable />
-              </div>
+              <ApplicationTab
+                isLoading={isLoading}
+                applicationFiles={applicationFiles}
+                lastSavedFile={lastSavedFiles.application}
+                dataSaved={dataSaved}
+                applicationData={applicationData}
+                onFileUpload={(e) => handleFileUpload(e, "application")}
+                onSaveData={handleSaveData}
+              />
             </TabsContent>
             
             <TabsContent value="spends">
-              <div className="flex flex-col space-y-2">
-                <label htmlFor="spends-file" className="text-sm font-medium">
-                  Upload JSON or CSV file with spend data
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id="spends-file"
-                    type="file"
-                    accept=".json,.csv"
-                    onChange={(e) => handleFileUpload(e, "spends")}
-                    className="border rounded-md p-2 flex-1"
-                    disabled={isLoading}
-                  />
-                  <Button 
-                    variant="outline"
-                    onClick={downloadSpendsTemplate}
-                    disabled={isLoading}
-                  >
-                    Download Template
-                  </Button>
-                </div>
-                <div className="text-xs text-gray-500">
-                  File must contain spend data with at least: mid, totalSpend, spendTrend (increasing, decreasing, stable, null), monthlySpends (array)
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <Button 
-                    onClick={handleSaveData}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    Save Data
-                  </Button>
-                </div>
-                <SavedFileInfo fileType="spends" />
-                <FileHistory files={spendsFiles} />
-                <SpendsDataTable />
-              </div>
+              <SpendsTab
+                isLoading={isLoading}
+                spendsFiles={spendsFiles}
+                lastSavedFile={lastSavedFiles.spends}
+                dataSaved={dataSaved}
+                spendsData={spendsData}
+                onFileUpload={(e) => handleFileUpload(e, "spends")}
+                onSaveData={handleSaveData}
+              />
             </TabsContent>
             
             <TabsContent value="warnings">
-              <div className="flex flex-col space-y-2">
-                <label htmlFor="warnings-file" className="text-sm font-medium">
-                  Upload JSON or CSV file with warning signals data
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id="warnings-file"
-                    type="file"
-                    accept=".json,.csv"
-                    onChange={(e) => handleFileUpload(e, "warnings")}
-                    className="border rounded-md p-2 flex-1"
-                    disabled={isLoading}
-                  />
-                  <Button 
-                    variant="outline"
-                    onClick={downloadWarningsTemplate}
-                    disabled={isLoading}
-                  >
-                    Download Template
-                  </Button>
-                </div>
-                <div className="text-xs text-gray-500">
-                  File must contain warning data with at least: mid, riskFlag (high, medium, low), gmvDrop, spendsDrop, internalTriggers (array)
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <Button 
-                    onClick={handleSaveData}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    Save Data
-                  </Button>
-                </div>
-                <SavedFileInfo fileType="warnings" />
-                <FileHistory files={warningsFiles} />
-                <WarningsDataTable />
-              </div>
+              <WarningsTab
+                isLoading={isLoading}
+                warningsFiles={warningsFiles}
+                lastSavedFile={lastSavedFiles.warnings}
+                dataSaved={dataSaved}
+                warningsData={warningsData}
+                onFileUpload={(e) => handleFileUpload(e, "warnings")}
+                onSaveData={handleSaveData}
+              />
             </TabsContent>
           </Tabs>
         </CardContent>
