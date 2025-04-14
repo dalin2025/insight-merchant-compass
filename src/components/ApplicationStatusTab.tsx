@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import StatusBadge from "./StatusBadge";
 import TimelineComponent from "./TimelineComponent";
 
-type StatusType = "in-progress" | "approved" | "rejected";
+type StatusType = "not-started" | "in-progress" | "approved" | "rejected";
 
 type ApplicationStatusTabProps = {
   status: StatusType;

@@ -34,7 +34,7 @@ export interface ApplicationStatus {
 
 export interface SpendData {
   totalSpend: string;
-  spendTrend: "increasing" | "decreasing" | "stable";
+  spendTrend: "increasing" | "decreasing" | "stable" | "null";
   monthlySpends: Array<{ month: string; amount: number }>;
 }
 

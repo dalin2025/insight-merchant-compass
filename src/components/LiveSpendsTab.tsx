@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import StatusBadge from "./StatusBadge";
 
-type TrendType = "increasing" | "decreasing" | "null";
+type TrendType = "increasing" | "decreasing" | "stable" | "null";
 
 type LiveSpendsTabProps = {
   totalSpend: string;
