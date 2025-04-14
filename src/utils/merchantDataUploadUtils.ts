@@ -77,3 +77,20 @@ export const downloadCSVTemplate = () => {
   link.click();
   document.body.removeChild(link);
 };
+
+// Modified function for simpler spends data template
+export const downloadSpendsTemplate = () => {
+  const content = `mid,totalSpend,spendTrend,month1,amount1,month2,amount2,month3,amount3
+RZPM10098765,₹175000,increasing,Jan,45000,Feb,52000,Mar,78000`;
+  
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", "spends_data_template.csv");
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+

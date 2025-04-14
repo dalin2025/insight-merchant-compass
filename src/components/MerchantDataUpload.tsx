@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +19,6 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
   const [isLoading, setIsLoading] = useState(false);
   const [activeUploadTab, setActiveUploadTab] = useState("basic");
   
-  // Initialize with saved data
   useEffect(() => {
     if (savedMerchants.length > 0) {
       setUploadedMerchants(savedMerchants);
@@ -37,10 +35,8 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
       try {
         const content = e.target?.result as string;
         
-        // Handle JSON format
         if (file.name.endsWith('.json')) {
           const data = JSON.parse(content);
-          // Check if it's an array of merchants or a single merchant
           const parsedData = Array.isArray(data) ? data : [data];
           
           if (type === "basic") {
@@ -53,7 +49,6 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
             validateAndUpdateWarningData(parsedData);
           }
         } 
-        // Handle CSV format
         else if (file.name.endsWith('.csv')) {
           const parsedData = parseCSV(content);
           
@@ -62,7 +57,7 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
           } else if (type === "application") {
             validateAndUpdateApplicationStatus(parsedData);
           } else if (type === "spends") {
-            validateAndUpdateSpendData(parsedData);
+            validateAndUpdateSpendData(parseCSV(content, true));
           } else if (type === "warnings") {
             validateAndUpdateWarningData(parsedData);
           }
@@ -86,9 +81,13 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     }
   };
   
-  const parseCSV = (csvContent: string): any[] => {
+  const parseCSV = (csvContent: string, isSpendData = false): any[] => {
     const lines = csvContent.split('\n');
     const headers = lines[0].split(',').map(header => header.trim());
+    
+    if (isSpendData) {
+      return parseSimplifiedSpendCSV(csvContent);
+    }
     
     return lines.slice(1).filter(line => line.trim()).map(line => {
       const values = line.split(',').map(value => value.trim());
@@ -97,7 +96,6 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
       headers.forEach((header, index) => {
         let value = values[index];
         
-        // Try to convert numeric values
         if (/^\d+(\.\d+)?$/.test(value)) {
           data[header] = parseFloat(value);
         } else if (value === 'true' || value === 'false') {
@@ -107,6 +105,33 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         }
       });
       
+      return data;
+    });
+  };
+  
+  const parseSimplifiedSpendCSV = (csvContent: string): any[] => {
+    const lines = csvContent.split('\n');
+    const headers = lines[0].split(',').map(header => header.trim());
+    
+    return lines.slice(1).filter(line => line.trim()).map(line => {
+      const values = line.split(',').map(value => value.trim());
+      const data: Record<string, any> = {};
+      
+      data.mid = values[0];
+      data.totalSpend = values[1];
+      data.spendTrend = values[2];
+      
+      const monthlySpends = [];
+      for (let i = 3; i < values.length; i += 2) {
+        if (values[i] && values[i+1]) {
+          monthlySpends.push({
+            month: values[i],
+            amount: parseFloat(values[i+1]) || 0
+          });
+        }
+      }
+      
+      data.monthlySpends = monthlySpends;
       return data;
     });
   };
@@ -123,14 +148,12 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         return;
       }
       
-      // Type check and conversion for businessType
       const validBusinessTypes = ["Private Limited", "Public Limited", "LLP", "Partnership", "Proprietorship"];
       if (!validBusinessTypes.includes(merchant.businessType as string)) {
         toast.warning(`Merchant ${merchant.mid}: Invalid business type "${merchant.businessType}"`);
         return;
       }
       
-      // Ensure numeric fields are numbers
       const numericFields = ['pgVintage', 'averageMonthlyGMV', 'qoqGrowth', 'activeDays'];
       for (const field of numericFields) {
         if (typeof merchant[field as keyof typeof merchant] !== 'number') {
@@ -149,11 +172,9 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     
     const updatedMerchants = [...uploadedMerchants];
     
-    // Update existing merchants or add new ones
     validMerchants.forEach(newMerchant => {
       const existingIndex = updatedMerchants.findIndex(m => m.mid === newMerchant.mid);
       if (existingIndex >= 0) {
-        // Preserve additional data that might exist
         updatedMerchants[existingIndex] = {
           ...newMerchant,
           application: updatedMerchants[existingIndex].application,
@@ -190,14 +211,12 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         return;
       }
 
-      // Validate status
       const validStatuses = ["not-started", "in-progress", "approved", "rejected"];
       if (data.status && !validStatuses.includes(data.status)) {
         toast.warning(`Invalid status "${data.status}" for merchant ${data.mid}`);
         return;
       }
 
-      // Update application status
       updatedMerchants[merchantIndex] = {
         ...updatedMerchants[merchantIndex],
         application: {
@@ -237,14 +256,12 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         return;
       }
 
-      // Validate trend
       const validTrends = ["increasing", "decreasing", "stable", "null"];
       if (data.spendTrend && !validTrends.includes(data.spendTrend)) {
         toast.warning(`Invalid spendTrend "${data.spendTrend}" for merchant ${data.mid}`);
         return;
       }
 
-      // Validate monthly spends format
       let monthlySpends: Array<{month: string; amount: number}> = [];
       if (data.monthlySpends) {
         if (!Array.isArray(data.monthlySpends)) {
@@ -259,7 +276,6 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         );
       }
 
-      // Update spends data
       updatedMerchants[merchantIndex] = {
         ...updatedMerchants[merchantIndex],
         spends: {
@@ -300,14 +316,12 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         return;
       }
 
-      // Validate risk flag
       const validRiskLevels = ["high", "medium", "low"];
       if (data.riskFlag && !validRiskLevels.includes(data.riskFlag)) {
         toast.warning(`Invalid riskFlag "${data.riskFlag}" for merchant ${data.mid}`);
         return;
       }
 
-      // Validate internal triggers
       let internalTriggers: Array<{name: string; severity: "high" | "medium" | "low"; details: string}> = [];
       if (data.internalTriggers) {
         if (!Array.isArray(data.internalTriggers)) {
@@ -323,7 +337,6 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         );
       }
 
-      // Update warning data
       updatedMerchants[merchantIndex] = {
         ...updatedMerchants[merchantIndex],
         warnings: {
