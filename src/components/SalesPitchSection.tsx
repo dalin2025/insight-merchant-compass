@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,24 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
   const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState<string>("");
   const { toast } = useToast();
+
+  // Load API key from local storage on component mount
+  useEffect(() => {
+    const storedApiKey = localStorage.getItem('perplexityApiKey');
+    if (storedApiKey) {
+      setApiKey(storedApiKey);
+    }
+  }, []);
+
+  const saveApiKey = () => {
+    if (apiKey.trim()) {
+      localStorage.setItem('perplexityApiKey', apiKey);
+      toast({
+        title: "API Key Saved",
+        description: "Your Perplexity API key has been securely stored locally.",
+      });
+    }
+  };
 
   const generateSalesPitch = async () => {
     if (!apiKey) {
@@ -113,7 +131,7 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             <Input
               type="password"
               placeholder="Enter your Perplexity API key"
@@ -121,6 +139,13 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
               onChange={(e) => setApiKey(e.target.value)}
               className="max-w-md"
             />
+            <Button 
+              onClick={saveApiKey}
+              variant="secondary"
+              size="sm"
+            >
+              Save Key
+            </Button>
             <Button 
               onClick={generateSalesPitch}
               disabled={isLoading}
@@ -144,7 +169,7 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
             </div>
           ) : (
             <p className="text-gray-500 text-sm">
-              Enter your Perplexity API key and click "Generate Pitch" to create a personalized sales pitch based on the merchant's profile and eligibility status.
+              Enter your Perplexity API key, save it, and then click "Generate Pitch" to create a personalized sales pitch based on the merchant's profile and eligibility status.
             </p>
           )}
         </div>
