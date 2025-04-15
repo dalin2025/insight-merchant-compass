@@ -133,7 +133,7 @@ const EarlyWarningTab = ({
       <div className="grid md:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">AMGMV Drop</CardTitle>
+            <CardTitle className="text-lg">AMGMV Drop (from Issuance)</CardTitle>
             <TrendingDown className={`h-5 w-5 ${amgmv < amgmvAtIssuance ? 'text-razorpay-red' : 'text-razorpay-green'}`} />
           </CardHeader>
           <CardContent>
