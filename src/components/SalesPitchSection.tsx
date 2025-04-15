@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,7 +36,54 @@ Please create a concise, data-driven sales pitch that:
 Maintain a professional and persuasive tone. Keep the response under 400 words.`;
 };
 
-// Function to generate a pitch locally based on the merchant data
+const generateRewards = (businessCategory: string, averageMonthlyGMV: number): string[] => {
+  const rewards: string[] = [];
+  const isLargeBusiness = averageMonthlyGMV > 1000000; // 10L+ monthly GMV
+
+  // Base rewards based on business size
+  if (isLargeBusiness) {
+    rewards.push("• Premium 2.5% cashback on all business expenses");
+    rewards.push("• Complimentary airport lounge access worldwide");
+  } else {
+    rewards.push("• Standard 1.5% cashback on all business expenses");
+    rewards.push("• 2 complimentary domestic airport lounge visits per quarter");
+  }
+
+  // Category-specific rewards
+  if (businessCategory.includes("tech") || businessCategory.includes("software")) {
+    rewards.push("• 5% cashback on AWS, Google Cloud, and Microsoft Azure services");
+    rewards.push("• Special discounts on Slack, Notion, and Monday.com subscriptions");
+    rewards.push("• Complimentary GitLab premium for 6 months");
+  } else if (businessCategory.includes("retail") || businessCategory.includes("shop")) {
+    rewards.push("• 4% cashback on inventory purchases from approved wholesalers");
+    rewards.push("• Free Shopify premium subscription for 3 months");
+    rewards.push("• Special rates on logistics partners like Delhivery and BlueDart");
+  } else if (businessCategory.includes("restaurant") || businessCategory.includes("food")) {
+    rewards.push("• 5% cashback on restaurant supply purchases");
+    rewards.push("• Free Zomato Pro and Swiggy Premium subscriptions");
+    rewards.push("• Special discounts on POS systems and inventory management tools");
+  } else if (businessCategory.includes("travel") || businessCategory.includes("hospitality")) {
+    rewards.push("• 4% cashback on travel bookings through partner platforms");
+    rewards.push("• Premium listing on MakeMyTrip and Booking.com");
+    rewards.push("• Complimentary travel insurance for business trips");
+  } else {
+    rewards.push("• 3% cashback on category-specific business expenses");
+    rewards.push("• Special discounts on industry-leading software solutions");
+  }
+
+  return rewards;
+};
+
+const generateCreditMessage = (averageMonthlyGMV: number): string => {
+  if (averageMonthlyGMV > 5000000) { // 50L+ monthly GMV
+    return "As a high-volume business, you qualify for our premium unsecured credit line with no collateral requirements. Your strong business performance enables immediate access to higher credit limits with flexible repayment terms.";
+  } else if (averageMonthlyGMV > 1000000) { // 10L+ monthly GMV
+    return "Based on your consistent business performance, you're eligible for our unsecured credit offering with no collateral needed. Enjoy the flexibility of credit limits that grow with your business.";
+  } else {
+    return "Start your credit journey with our unsecured business card - no collateral required. As your business grows, your credit limit will automatically increase.";
+  }
+};
+
 const generateLocalPitch = (merchantData: MerchantData, isEligible: boolean): string => {
   const businessCategory = merchantData.businessCategory.toLowerCase();
   const businessType = merchantData.businessType;
@@ -50,37 +96,22 @@ const generateLocalPitch = (merchantData: MerchantData, isEligible: boolean): st
     ? `Dear ${businessType} Business Owner,\n\nCongratulations! Based on your solid track record with our payment gateway for the past ${pgVintageYears} years, you're pre-qualified for our exclusive Corporate Card offering.\n\n`
     : `Dear ${businessType} Business Owner,\n\nThank you for your interest in our Corporate Card solution. While reviewing your business profile, we've identified some alternative options that could be valuable for your ${businessCategory} business.\n\n`;
   
-  // Add business-specific benefits
-  pitch += `For your ${businessCategory} business processing ₹${averageMonthlyGMV.toLocaleString('en-IN')} monthly, our card delivers:\n\n`;
+  // Add credit message
+  pitch += generateCreditMessage(averageMonthlyGMV) + "\n\n";
   
-  // Add tailored benefits based on business category and metrics
-  if (averageMonthlyGMV > 500000) {
-    pitch += "• Premium cashback rates on all business expenses\n";
-    pitch += "• Extended 45-day interest-free credit period\n";
-  } else {
-    pitch += "• Competitive cashback rates on all business expenses\n";
-    pitch += "• Standard 30-day interest-free credit period\n";
-  }
+  // Add business-specific information
+  pitch += `For your ${businessCategory} business processing ₹${averageMonthlyGMV.toLocaleString('en-IN')} monthly, we're excited to offer:\n\n`;
   
+  // Add rewards
+  const rewards = generateRewards(businessCategory, averageMonthlyGMV);
+  pitch += rewards.join("\n");
+  
+  // Add growth-based benefits
   if (qoqGrowth > 10) {
-    pitch += `• Scalable credit limits that grow with your impressive ${qoqGrowth}% quarterly growth\n`;
-  } else {
-    pitch += "• Stable credit limits with periodic reviews for increases\n";
-  }
-  
-  // Add category-specific benefits
-  if (businessCategory.includes("retail") || businessCategory.includes("shop")) {
-    pitch += "• Enhanced rewards on inventory and supply chain expenses\n";
-    pitch += "• Special merchant discounts at wholesale partners\n";
-  } else if (businessCategory.includes("restaurant") || businessCategory.includes("food")) {
-    pitch += "• Special rewards on food and beverage suppliers\n";
-    pitch += "• Integrated expense management for multiple locations\n";
-  } else if (businessCategory.includes("tech") || businessCategory.includes("software")) {
-    pitch += "• Special benefits for SaaS subscriptions and cloud services\n";
-    pitch += "• Tech-forward expense tracking and management tools\n";
-  } else {
-    pitch += "• Category-specific rewards tailored to your business needs\n";
-    pitch += "• Integrated expense tracking and management tools\n";
+    pitch += `\n\nGiven your impressive ${qoqGrowth}% quarterly growth, you'll also receive:\n`;
+    pitch += "• Priority processing for credit limit increase requests\n";
+    pitch += "• Dedicated relationship manager\n";
+    pitch += "• Quarterly business growth consultation sessions\n";
   }
   
   // Add next steps based on eligibility
