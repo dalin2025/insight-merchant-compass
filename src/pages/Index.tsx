@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { IndianRupee } from "lucide-react";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -206,7 +206,7 @@ const Index = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
-              Financial Snapshot
+              Financial Snapshot <span className="text-sm text-muted-foreground ml-2">(Fetched from Corpository)</span>
             </DialogTitle>
           </DialogHeader>
           
