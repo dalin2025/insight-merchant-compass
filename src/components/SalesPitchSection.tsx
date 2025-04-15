@@ -46,7 +46,7 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
 
   // Load API key from local storage on component mount
   useEffect(() => {
-    const storedApiKey = localStorage.getItem('perplexityApiKey');
+    const storedApiKey = localStorage.getItem('openAiApiKey');
     if (storedApiKey) {
       setApiKey(storedApiKey);
     }
@@ -54,10 +54,10 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
 
   const saveApiKey = () => {
     if (apiKey.trim()) {
-      localStorage.setItem('perplexityApiKey', apiKey);
+      localStorage.setItem('openAiApiKey', apiKey);
       toast({
         title: "API Key Saved",
-        description: "Your Perplexity API key has been securely stored locally.",
+        description: "Your OpenAI API key has been securely stored locally.",
       });
     }
   };
@@ -66,7 +66,7 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
     if (!apiKey) {
       toast({
         title: "API Key Required",
-        description: "Please enter your Perplexity API key to generate a sales pitch",
+        description: "Please enter your OpenAI API key to generate a sales pitch",
         variant: "destructive",
       });
       return;
@@ -76,14 +76,14 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
       setIsLoading(true);
       const prompt = generatePrompt(merchantData, isEligible);
       
-      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'llama-3.1-sonar-small-128k-online',
+          model: "gpt-4o-mini",
           messages: [
             {
               role: 'system',
@@ -134,7 +134,7 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
           <div className="flex gap-4 items-center">
             <Input
               type="password"
-              placeholder="Enter your Perplexity API key"
+              placeholder="Enter your OpenAI API key"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               className="max-w-md"
@@ -169,7 +169,7 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
             </div>
           ) : (
             <p className="text-gray-500 text-sm">
-              Enter your Perplexity API key, save it, and then click "Generate Pitch" to create a personalized sales pitch based on the merchant's profile and eligibility status.
+              Enter your OpenAI API key, save it, and then click "Generate Pitch" to create a personalized sales pitch based on the merchant's profile and eligibility status.
             </p>
           )}
         </div>
