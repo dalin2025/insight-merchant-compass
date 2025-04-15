@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import StatusBadge from "./StatusBadge";
 import TimelineComponent from "./TimelineComponent";
@@ -13,13 +12,19 @@ type ApplicationStatusTabProps = {
   bankComments?: string[];
   hasData?: boolean;
   merchant?: MerchantData | null;
+  submittedDate?: string;
+  underReviewDate?: string;
+  bankDecisionDate?: string;
 };
 
 const ApplicationStatusTab = ({
   status,
   bankComments = [],
   hasData = false,
-  merchant = null
+  merchant = null,
+  submittedDate,
+  underReviewDate,
+  bankDecisionDate
 }: ApplicationStatusTabProps) => {
   const [isEligible, setIsEligible] = useState<boolean | null>(null);
   
@@ -32,44 +37,35 @@ const ApplicationStatusTab = ({
     }
   }, [merchant]);
 
-  // Define timeline steps based on status
   const getTimelineSteps = () => {
     const baseSteps = [
       {
         id: 1,
         name: "Submitted",
         status: "completed" as const,
-        date: "15 Apr 2025",
+        date: submittedDate || "",
       },
       {
         id: 2,
         name: "Under Review",
         status: "pending" as const,
-        date: "",
+        date: underReviewDate || "",
       },
       {
         id: 3,
         name: "Bank Decision",
         status: "pending" as const,
-        date: "",
+        date: bankDecisionDate || "",
       },
     ];
 
     if (status === "in-progress") {
       return baseSteps.map((step, index) => {
-        if (index === 1) return { ...step, status: "current" as const, date: "Current" };
+        if (index === 1) return { ...step, status: "current" as const };
         return step;
       });
     } else if (status === "approved" || status === "rejected") {
-      return baseSteps.map((step, index) => {
-        if (index === 1) return { ...step, status: "completed" as const, date: "18 Apr 2025" };
-        if (index === 2) return { 
-          ...step, 
-          status: "completed" as const, 
-          date: "20 Apr 2025"
-        };
-        return step;
-      });
+      return baseSteps.map((step) => ({ ...step, status: "completed" as const }));
     }
     
     return baseSteps;

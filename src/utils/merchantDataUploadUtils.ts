@@ -93,8 +93,8 @@ RZPM10098765,₹175000,increasing,Jan,45000,Feb,52000,Mar,78000`;
 };
 
 export const downloadApplicationTemplate = () => {
-  const content = `mid,status,bankComments
-RZPM10098765,in-progress,"KYC documents verified successfully.,Business profile meets bank requirements."`;
+  const content = `mid,status,bankComments,submittedDate,underReviewDate,bankDecisionDate
+RZPM10098765,in-progress,"KYC documents verified successfully.,Business profile meets bank requirements.","2025-04-15","2025-04-18",""`;
   
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement("a");

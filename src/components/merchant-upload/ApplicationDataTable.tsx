@@ -5,6 +5,9 @@ interface ApplicationDataItem {
   mid: string;
   status: string;
   bankComments?: string[];
+  submittedDate?: string;
+  underReviewDate?: string;
+  bankDecisionDate?: string;
 }
 
 interface ApplicationDataTableProps {
@@ -21,13 +24,16 @@ const ApplicationDataTable: React.FC<ApplicationDataTableProps> = ({ data }) => 
   return (
     <div className="mt-4">
       <h4 className="text-sm font-medium mb-2">Uploaded Application Data:</h4>
-      <div className="border rounded-md overflow-hidden">
+      <div className="border rounded-md overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">MID</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Bank Comments</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Submitted</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Under Review</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Bank Decision</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -55,6 +61,9 @@ const ApplicationDataTable: React.FC<ApplicationDataTableProps> = ({ data }) => 
                     "No comments"
                   )}
                 </td>
+                <td className="px-4 py-2 text-sm">{item.submittedDate || "-"}</td>
+                <td className="px-4 py-2 text-sm">{item.underReviewDate || "-"}</td>
+                <td className="px-4 py-2 text-sm">{item.bankDecisionDate || "-"}</td>
               </tr>
             ))}
           </tbody>
