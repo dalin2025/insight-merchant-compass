@@ -1,7 +1,7 @@
-
 import { useState } from 'react';
 import { Info, ChevronDown, ChevronUp, Check, X, AlertTriangle } from 'lucide-react';
-import { EligibilityParameter, Policy, EligibilityResult } from '@/types/eligibility';
+import { EligibilityParameter, Policy, EligibilityResult, MerchantData } from '@/types/eligibility';
+import SalesPitchSection from './SalesPitchSection';
 
 const PolicyParameterItem = ({ parameter }: { parameter: EligibilityParameter }) => {
   return (
@@ -28,16 +28,16 @@ const PolicyParameterItem = ({ parameter }: { parameter: EligibilityParameter })
 
 interface EnhancedEligibilityTabProps {
   eligibilityResult: EligibilityResult;
+  merchantData?: MerchantData;
 }
 
-const EnhancedEligibilityTab = ({ eligibilityResult }: EnhancedEligibilityTabProps) => {
+const EnhancedEligibilityTab = ({ eligibilityResult, merchantData }: EnhancedEligibilityTabProps) => {
   const [expandedPolicy, setExpandedPolicy] = useState<string | null>(null);
 
   const togglePolicy = (policyId: string) => {
     setExpandedPolicy(expandedPolicy === policyId ? null : policyId);
   };
 
-  // Get policies by ID (including non-eligible ones)
   const getPolicy = (id: string): Policy | undefined => {
     return eligibilityResult.allPolicies?.find(policy => policy.id === id);
   };
@@ -47,7 +47,6 @@ const EnhancedEligibilityTab = ({ eligibilityResult }: EnhancedEligibilityTabPro
 
   return (
     <div className="space-y-6">
-      {/* Eligibility Status */}
       <div className="rounded-lg border p-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Eligibility Status</h3>
@@ -100,14 +99,12 @@ const EnhancedEligibilityTab = ({ eligibilityResult }: EnhancedEligibilityTabPro
         )}
       </div>
       
-      {/* Policies */}
       <div className="rounded-lg border">
         <div className="border-b p-4">
           <h3 className="text-lg font-semibold">Policy Details</h3>
         </div>
         
         <div className="divide-y">
-          {/* Display all policies that were evaluated */}
           {eligibilityResult.allPolicies && eligibilityResult.allPolicies.length > 0 ? (
             eligibilityResult.allPolicies.map((policy) => (
               <div key={policy.id} className="p-4">
@@ -148,21 +145,11 @@ const EnhancedEligibilityTab = ({ eligibilityResult }: EnhancedEligibilityTabPro
         </div>
       </div>
 
-      {/* Financial review suggestion for ineligible merchants */}
-      {!eligibilityResult.isEligible && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <div className="flex items-center space-x-3">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
-            <div>
-              <h4 className="font-medium text-amber-800">Financial Review Needed</h4>
-              <p className="text-sm text-amber-700">
-                Currently not eligible under Payment Gateway (PG) policy. 
-                We recommend a detailed financial assessment to explore alternative credit options 
-                and understand potential pathways to eligibility.
-              </p>
-            </div>
-          </div>
-        </div>
+      {merchantData && (
+        <SalesPitchSection 
+          merchantData={merchantData}
+          isEligible={eligibilityResult.isEligible}
+        />
       )}
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import DashboardHeader from "@/components/DashboardHeader";
 import TabNavigation from "@/components/TabNavigation";
@@ -19,7 +18,6 @@ const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load saved merchant data from database on component mount
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -110,7 +108,10 @@ const Index = () => {
               <>
                 {activeTab === "eligibility" && (
                   merchantData ? (
-                    <EnhancedEligibilityTab eligibilityResult={evaluateEligibility(merchantData)} />
+                    <EnhancedEligibilityTab 
+                      eligibilityResult={evaluateEligibility(merchantData)}
+                      merchantData={merchantData}
+                    />
                   ) : (
                     <div className="text-center py-8">
                       <p className="text-gray-500">
