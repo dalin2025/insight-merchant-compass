@@ -1,3 +1,4 @@
+
 export interface EligibilityParameter {
   name: string;
   value: any;
@@ -30,6 +31,9 @@ export interface BusinessCategory {
 export interface ApplicationStatus {
   status: "not-started" | "in-progress" | "approved" | "rejected";
   bankComments: string[];
+  submittedDate?: string;
+  underReviewDate?: string;
+  bankDecisionDate?: string;
 }
 
 export interface SpendData {
