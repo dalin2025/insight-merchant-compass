@@ -154,7 +154,7 @@ const EarlyWarningTab = ({
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Average AMGMV Analysis</CardTitle>
+            <CardTitle className="text-lg">Spends and Average AMGMV Matrix</CardTitle>
             <TrendingDown className={`h-5 w-5 ${averageAmgmv < amgmvAtIssuance ? 'text-razorpay-red' : 'text-razorpay-green'}`} />
           </CardHeader>
           <CardContent>
