@@ -1,3 +1,4 @@
+
 import { BusinessCategory, MerchantData } from "@/types/eligibility";
 
 export const CSV_TEMPLATE_HEADERS = [
@@ -108,8 +109,8 @@ RZPM10098765,in-progress,"KYC documents verified successfully.,Business profile 
 };
 
 export const downloadWarningsTemplate = () => {
-  const content = `mid,gmvAtIssuance,amgmv,spends,averageAmgmv
-RZPM10098765,1500000,1800000,750000,1650000`;
+  const content = `mid,amgmv,amgmvAtIssuance,averageAmgmv,spendsDrop
+RZPM10098765,1500000,1800000,1650000,35`;
   
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement("a");

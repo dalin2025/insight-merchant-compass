@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MerchantData } from '@/types/eligibility';
@@ -46,8 +47,9 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
   
   const [warningsData, setWarningsData] = useState<Array<{
     mid: string;
-    riskFlag: "high" | "medium" | "low";
-    gmvDrop: number;
+    amgmv: number;
+    amgmvAtIssuance: number;
+    averageAmgmv: number;
     spendsDrop: number;
     internalTriggers: Array<{name: string; severity: "high" | "medium" | "low"; details: string}>;
   }>>([]);
@@ -100,8 +102,9 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         .filter(merchant => merchant.warnings)
         .map(merchant => ({
           mid: merchant.mid,
-          riskFlag: merchant.warnings?.riskFlag || "low",
-          gmvDrop: merchant.warnings?.gmvDrop || 0,
+          amgmv: merchant.warnings?.amgmv || 0,
+          amgmvAtIssuance: merchant.warnings?.amgmvAtIssuance || 0,
+          averageAmgmv: merchant.warnings?.averageAmgmv || 0,
           spendsDrop: merchant.warnings?.spendsDrop || 0,
           internalTriggers: merchant.warnings?.internalTriggers || []
         }));
@@ -391,8 +394,9 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     const updatedMerchants = [...uploadedMerchants];
     const validWarningsData: Array<{
       mid: string;
-      riskFlag: "high" | "medium" | "low";
-      gmvDrop: number;
+      amgmv: number;
+      amgmvAtIssuance: number;
+      averageAmgmv: number;
       spendsDrop: number;
       internalTriggers: Array<{name: string; severity: "high" | "medium" | "low"; details: string}>;
     }> = [];
@@ -409,12 +413,13 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         return;
       }
 
-      const validRiskLevels = ["high", "medium", "low"] as const;
-      if (data.riskFlag && !validRiskLevels.includes(data.riskFlag)) {
-        toast.warning(`Invalid riskFlag "${data.riskFlag}" for merchant ${data.mid}`);
-        return;
-      }
+      // Validate numeric fields
+      const amgmv = typeof data.amgmv === 'number' ? data.amgmv : 0;
+      const amgmvAtIssuance = typeof data.amgmvAtIssuance === 'number' ? data.amgmvAtIssuance : 0;
+      const averageAmgmv = typeof data.averageAmgmv === 'number' ? data.averageAmgmv : 0;
+      const spendsDrop = typeof data.spendsDrop === 'number' ? data.spendsDrop : 0;
 
+      // Process internal triggers
       let internalTriggers: Array<{name: string; severity: "high" | "medium" | "low"; details: string}> = [];
       if (data.internalTriggers) {
         if (!Array.isArray(data.internalTriggers)) {
@@ -422,6 +427,7 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
           return;
         }
         
+        const validRiskLevels = ["high", "medium", "low"] as const;
         const parsedTriggers = [];
         for (const trigger of data.internalTriggers) {
           if (typeof trigger !== 'object') {
@@ -445,9 +451,10 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
 
       const validWarningItem = {
         mid: data.mid,
-        riskFlag: (data.riskFlag || "low") as "high" | "medium" | "low",
-        gmvDrop: typeof data.gmvDrop === 'number' ? data.gmvDrop : 0,
-        spendsDrop: typeof data.spendsDrop === 'number' ? data.spendsDrop : 0,
+        amgmv: amgmv,
+        amgmvAtIssuance: amgmvAtIssuance,
+        averageAmgmv: averageAmgmv,
+        spendsDrop: spendsDrop,
         internalTriggers: internalTriggers
       };
       
