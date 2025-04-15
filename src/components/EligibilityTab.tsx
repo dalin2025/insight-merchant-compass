@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -113,10 +112,11 @@ const EligibilityTab = ({
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <div></div>
         <Button 
           onClick={() => setShowFinancials(true)}
-          className="gap-2"
+          className="gap-2 bg-blue-500 hover:bg-blue-600"
         >
           <IndianRupee className="h-4 w-4" />
           Fetch Financials
