@@ -6,9 +6,10 @@ import StatusBadge from "./StatusBadge";
 type RiskLevel = "high" | "medium" | "low";
 
 type EarlyWarningTabProps = {
-  riskFlag: RiskLevel;
-  gmvDrop: number; // Percentage
-  spendsDrop: number; // Percentage
+  amgmv: number;
+  amgmvAtIssuance: number;
+  spends: number;
+  averageAmgmv: number;
   internalTriggers: Array<{
     name: string;
     severity: RiskLevel;
@@ -17,13 +18,68 @@ type EarlyWarningTabProps = {
   hasData?: boolean;
 };
 
+const calculateRiskLevel = (
+  amgmv: number,
+  amgmvAtIssuance: number,
+  spends: number,
+  averageAmgmv: number
+): { riskFlag: RiskLevel; triggers: Array<{ name: string; severity: RiskLevel; details: string }> } => {
+  const triggers: Array<{ name: string; severity: RiskLevel; details: string }> = [];
+  let highestRisk: RiskLevel = "low";
+  
+  // Calculate AMGMV drop percentage
+  const amgmvDropPercent = ((amgmvAtIssuance - amgmv) / amgmvAtIssuance) * 100;
+  
+  // Calculate Average AMGMV drop percentage
+  const averageAmgmvDropPercent = ((amgmvAtIssuance - averageAmgmv) / amgmvAtIssuance) * 100;
+
+  // Rule 1: AMGMV drop > 50%
+  if (amgmvDropPercent > 50) {
+    triggers.push({
+      name: "Significant AMGMV Drop",
+      severity: "high",
+      details: `AMGMV has dropped by ${amgmvDropPercent.toFixed(1)}% since issuance`
+    });
+    highestRisk = "high";
+  }
+
+  // Rules for spends and average AMGMV drop combinations
+  if (spends > 60 && averageAmgmvDropPercent > 10) {
+    triggers.push({
+      name: "Moderate Risk Indicator",
+      severity: "low",
+      details: `Spends (${spends}%) and Average AMGMV drop (${averageAmgmvDropPercent.toFixed(1)}%) indicate low risk`
+    });
+    highestRisk = highestRisk === "high" ? highestRisk : "low";
+  } else if (spends >= 30 && spends <= 60 && averageAmgmvDropPercent >= 10 && averageAmgmvDropPercent <= 30) {
+    triggers.push({
+      name: "Elevated Risk Indicator",
+      severity: "medium",
+      details: `Spends (${spends}%) and Average AMGMV drop (${averageAmgmvDropPercent.toFixed(1)}%) indicate medium risk`
+    });
+    highestRisk = highestRisk === "high" ? highestRisk : "medium";
+  } else if (spends < 30 && averageAmgmvDropPercent > 30) {
+    triggers.push({
+      name: "Critical Risk Indicator",
+      severity: "high",
+      details: `Low spends (${spends}%) and high Average AMGMV drop (${averageAmgmvDropPercent.toFixed(1)}%) indicate high risk`
+    });
+    highestRisk = "high";
+  }
+
+  return { riskFlag: highestRisk, triggers };
+};
+
 const EarlyWarningTab = ({
-  riskFlag = "low",
-  gmvDrop = 0,
-  spendsDrop = 0,
+  amgmv = 0,
+  amgmvAtIssuance = 0,
+  spends = 0,
+  averageAmgmv = 0,
   internalTriggers = [],
   hasData = false
 }: EarlyWarningTabProps) => {
+  const { riskFlag, triggers } = calculateRiskLevel(amgmv, amgmvAtIssuance, spends, averageAmgmv);
+
   const getRiskBadge = (risk: RiskLevel) => {
     switch (risk) {
       case "high":
@@ -77,20 +133,20 @@ const EarlyWarningTab = ({
       <div className="grid md:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">GMV Drop</CardTitle>
-            <TrendingDown className={`h-5 w-5 ${gmvDrop > 10 ? 'text-razorpay-red' : 'text-razorpay-orange'}`} />
+            <CardTitle className="text-lg">AMGMV Drop</CardTitle>
+            <TrendingDown className={`h-5 w-5 ${amgmv < amgmvAtIssuance ? 'text-razorpay-red' : 'text-razorpay-green'}`} />
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <p className="text-3xl font-bold">{gmvDrop}%</p>
+              <p className="text-3xl font-bold">
+                {((amgmvAtIssuance - amgmv) / amgmvAtIssuance * 100).toFixed(1)}%
+              </p>
               <p className="text-sm text-gray-500">Since card issuance</p>
               <div className="space-y-2">
-                <p className="text-xs text-gray-500">Impact</p>
-                {gmvDrop > 10 ? (
-                  <StatusBadge status="Significant Impact" type="error" />
-                ) : (
-                  <StatusBadge status="Moderate Impact" type="warning" />
-                )}
+                <p className="text-xs text-gray-500">Current AMGMV</p>
+                <p className="text-sm font-medium">₹{amgmv.toLocaleString()}</p>
+                <p className="text-xs text-gray-500">AMGMV at Issuance</p>
+                <p className="text-sm font-medium">₹{amgmvAtIssuance.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -98,34 +154,34 @@ const EarlyWarningTab = ({
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Spends Drop</CardTitle>
-            <TrendingDown className={`h-5 w-5 ${spendsDrop > 10 ? 'text-razorpay-red' : 'text-razorpay-orange'}`} />
+            <CardTitle className="text-lg">Average AMGMV Analysis</CardTitle>
+            <TrendingDown className={`h-5 w-5 ${averageAmgmv < amgmvAtIssuance ? 'text-razorpay-red' : 'text-razorpay-green'}`} />
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <p className="text-3xl font-bold">{spendsDrop}%</p>
-              <p className="text-sm text-gray-500">Month-on-month</p>
+              <p className="text-3xl font-bold">
+                {((amgmvAtIssuance - averageAmgmv) / amgmvAtIssuance * 100).toFixed(1)}%
+              </p>
+              <p className="text-sm text-gray-500">Drop in Average AMGMV</p>
               <div className="space-y-2">
-                <p className="text-xs text-gray-500">Impact</p>
-                {spendsDrop > 10 ? (
-                  <StatusBadge status="Significant Impact" type="error" />
-                ) : (
-                  <StatusBadge status="Moderate Impact" type="warning" />
-                )}
+                <p className="text-xs text-gray-500">Current Average AMGMV</p>
+                <p className="text-sm font-medium">₹{averageAmgmv.toLocaleString()}</p>
+                <p className="text-xs text-gray-500">Spends Utilization</p>
+                <p className="text-sm font-medium">{spends}%</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {internalTriggers.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Internal Triggers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {internalTriggers.map((trigger, index) => (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Risk Triggers</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {triggers.length > 0 ? (
+              triggers.map((trigger, index) => (
                 <div
                   key={index}
                   className="p-4 border border-gray-100 rounded-lg flex space-x-3"
@@ -139,22 +195,15 @@ const EarlyWarningTab = ({
                     <p className="text-sm text-gray-600">{trigger.details}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Internal Triggers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-4">
-              <p className="text-gray-500">No internal triggers detected</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              ))
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-gray-500">No risk triggers detected</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
