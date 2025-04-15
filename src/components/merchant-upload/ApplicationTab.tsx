@@ -16,6 +16,9 @@ interface ApplicationTabProps {
     mid: string;
     status: string;
     bankComments?: string[];
+    submittedDate?: string;
+    underReviewDate?: string;
+    bankDecisionDate?: string;
   }>;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSaveData: () => void;

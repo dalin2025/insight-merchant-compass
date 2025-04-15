@@ -94,8 +94,18 @@ RZPM10098765,₹175000,increasing,Jan,45000,Feb,52000,Mar,78000`;
 };
 
 export const downloadApplicationTemplate = () => {
+  // Updated the template to use ISO date format YYYY-MM-DD for better compatibility
+  const today = new Date();
+  const submittedDate = today.toISOString().split('T')[0]; // Today
+  
+  // Create a date 3 days in the future for the review date
+  const reviewDate = new Date(today);
+  reviewDate.setDate(today.getDate() + 3);
+  const underReviewDate = reviewDate.toISOString().split('T')[0];
+  
+  // Leave the bank decision date empty as it would be in the future
   const content = `mid,status,bankComments,submittedDate,underReviewDate,bankDecisionDate
-RZPM10098765,in-progress,"KYC documents verified successfully.,Business profile meets bank requirements.","2025-04-15","2025-04-18",""`;
+RZPM10098765,in-progress,"KYC documents verified successfully.,Business profile meets bank requirements.","${submittedDate}","${underReviewDate}",""`;
   
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement("a");

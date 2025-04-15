@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface ApplicationDataItem {
@@ -20,6 +19,26 @@ const ApplicationDataTable: React.FC<ApplicationDataTableProps> = ({ data }) => 
       No application data uploaded
     </div>
   );
+  
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "-";
+    
+    // If it's already a formatted date string, return as is
+    if (dateString.includes("-") || dateString.includes("/")) {
+      return dateString;
+    }
+    
+    // Otherwise try to parse it as a date
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return dateString; // Return the original if not a valid date
+      }
+      return date.toLocaleDateString();
+    } catch (e) {
+      return dateString; // Return the original string if parsing fails
+    }
+  };
   
   return (
     <div className="mt-4">
@@ -61,9 +80,9 @@ const ApplicationDataTable: React.FC<ApplicationDataTableProps> = ({ data }) => 
                     "No comments"
                   )}
                 </td>
-                <td className="px-4 py-2 text-sm">{item.submittedDate || "-"}</td>
-                <td className="px-4 py-2 text-sm">{item.underReviewDate || "-"}</td>
-                <td className="px-4 py-2 text-sm">{item.bankDecisionDate || "-"}</td>
+                <td className="px-4 py-2 text-sm">{formatDate(item.submittedDate)}</td>
+                <td className="px-4 py-2 text-sm">{formatDate(item.underReviewDate)}</td>
+                <td className="px-4 py-2 text-sm">{formatDate(item.bankDecisionDate)}</td>
               </tr>
             ))}
           </tbody>

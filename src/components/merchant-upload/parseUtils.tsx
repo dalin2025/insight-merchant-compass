@@ -14,11 +14,19 @@ export const parseCSV = (csvContent: string, isSpendData = false): any[] => {
     headers.forEach((header, index) => {
       let value = values[index];
       
-      if (/^\d+(\.\d+)?$/.test(value)) {
+      // Handle dates specifically - look for date headers and ISO date format
+      if ((header.toLowerCase().includes('date') || header.endsWith('Date')) && 
+          (value && /^\d{4}-\d{2}-\d{2}/.test(value))) {
+        // This is a date in ISO format
+        data[header] = value; // Keep as string for display purposes
+      } else if (/^\d+(\.\d+)?$/.test(value)) {
+        // Number values
         data[header] = parseFloat(value);
       } else if (value === 'true' || value === 'false') {
+        // Boolean values
         data[header] = value === 'true';
       } else {
+        // String values
         data[header] = value;
       }
     });
