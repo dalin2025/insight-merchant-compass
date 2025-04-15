@@ -14,8 +14,9 @@ interface WarningsTabProps {
   dataSaved: boolean;
   warningsData: Array<{
     mid: string;
-    riskFlag: "high" | "medium" | "low";
-    gmvDrop: number;
+    amgmv: number;
+    amgmvAtIssuance: number;
+    averageAmgmv: number;
     spendsDrop: number;
     internalTriggers: Array<{name: string; severity: "high" | "medium" | "low"; details: string}>;
   }>;
@@ -55,7 +56,7 @@ const WarningsTab: React.FC<WarningsTabProps> = ({
         </Button>
       </div>
       <div className="text-xs text-gray-500">
-        File must contain warning data with at least: mid, riskFlag (high, medium, low), gmvDrop, spendsDrop, internalTriggers (array)
+        File must contain warning data with at least: mid, amgmv, amgmvAtIssuance, averageAmgmv, spendsDrop, internalTriggers (array)
       </div>
       <div className="mt-4 flex justify-end">
         <Button 

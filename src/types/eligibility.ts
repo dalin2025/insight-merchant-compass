@@ -1,4 +1,3 @@
-
 export interface EligibilityParameter {
   name: string;
   value: any;
@@ -40,8 +39,9 @@ export interface SpendData {
 }
 
 export interface WarningSignals {
-  riskFlag: "high" | "medium" | "low";
-  gmvDrop: number;
+  amgmv: number;
+  amgmvAtIssuance: number;
+  averageAmgmv: number;
   spendsDrop: number;
   internalTriggers: Array<{
     name: string;

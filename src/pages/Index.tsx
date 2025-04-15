@@ -141,9 +141,10 @@ const Index = () => {
                 
                 {activeTab === "warnings" && (
                   <EarlyWarningTab 
-                    riskFlag={merchantData?.warnings?.riskFlag || "low"}
-                    gmvDrop={merchantData?.warnings?.gmvDrop || 0}
-                    spendsDrop={merchantData?.warnings?.spendsDrop || 0}
+                    amgmv={merchantData?.warnings?.amgmv || 0}
+                    amgmvAtIssuance={merchantData?.warnings?.amgmvAtIssuance || 0}
+                    spends={merchantData?.warnings?.spendsDrop || 0}
+                    averageAmgmv={merchantData?.warnings?.averageAmgmv || 0}
                     internalTriggers={merchantData?.warnings?.internalTriggers || []}
                     hasData={merchantData !== null && merchantData.warnings !== undefined}
                   />
