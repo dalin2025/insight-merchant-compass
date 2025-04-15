@@ -37,6 +37,71 @@ Please create a concise, data-driven sales pitch that:
 Maintain a professional and persuasive tone. Keep the response under 400 words.`;
 };
 
+// Function to generate a pitch locally based on the merchant data
+const generateLocalPitch = (merchantData: MerchantData, isEligible: boolean): string => {
+  const businessCategory = merchantData.businessCategory.toLowerCase();
+  const businessType = merchantData.businessType;
+  const averageMonthlyGMV = merchantData.averageMonthlyGMV;
+  const qoqGrowth = merchantData.qoqGrowth;
+  const pgVintageYears = (merchantData.pgVintage / 12).toFixed(1);
+  
+  // Customize intro based on eligibility
+  let pitch = isEligible 
+    ? `Dear ${businessType} Business Owner,\n\nCongratulations! Based on your solid track record with our payment gateway for the past ${pgVintageYears} years, you're pre-qualified for our exclusive Corporate Card offering.\n\n`
+    : `Dear ${businessType} Business Owner,\n\nThank you for your interest in our Corporate Card solution. While reviewing your business profile, we've identified some alternative options that could be valuable for your ${businessCategory} business.\n\n`;
+  
+  // Add business-specific benefits
+  pitch += `For your ${businessCategory} business processing ₹${averageMonthlyGMV.toLocaleString('en-IN')} monthly, our card delivers:\n\n`;
+  
+  // Add tailored benefits based on business category and metrics
+  if (averageMonthlyGMV > 500000) {
+    pitch += "• Premium cashback rates on all business expenses\n";
+    pitch += "• Extended 45-day interest-free credit period\n";
+  } else {
+    pitch += "• Competitive cashback rates on all business expenses\n";
+    pitch += "• Standard 30-day interest-free credit period\n";
+  }
+  
+  if (qoqGrowth > 10) {
+    pitch += `• Scalable credit limits that grow with your impressive ${qoqGrowth}% quarterly growth\n`;
+  } else {
+    pitch += "• Stable credit limits with periodic reviews for increases\n";
+  }
+  
+  // Add category-specific benefits
+  if (businessCategory.includes("retail") || businessCategory.includes("shop")) {
+    pitch += "• Enhanced rewards on inventory and supply chain expenses\n";
+    pitch += "• Special merchant discounts at wholesale partners\n";
+  } else if (businessCategory.includes("restaurant") || businessCategory.includes("food")) {
+    pitch += "• Special rewards on food and beverage suppliers\n";
+    pitch += "• Integrated expense management for multiple locations\n";
+  } else if (businessCategory.includes("tech") || businessCategory.includes("software")) {
+    pitch += "• Special benefits for SaaS subscriptions and cloud services\n";
+    pitch += "• Tech-forward expense tracking and management tools\n";
+  } else {
+    pitch += "• Category-specific rewards tailored to your business needs\n";
+    pitch += "• Integrated expense tracking and management tools\n";
+  }
+  
+  // Add next steps based on eligibility
+  if (isEligible) {
+    pitch += "\nNext Steps:\n";
+    pitch += "1. Complete our streamlined application (takes just 5 minutes)\n";
+    pitch += "2. Receive your digital card instantly upon approval\n";
+    pitch += "3. Physical card will be delivered within 3-5 business days\n";
+    pitch += "4. Start enjoying all benefits immediately\n\n";
+    pitch += "As a pre-qualified customer, your application process will be expedited with minimal documentation requirements.";
+  } else {
+    pitch += "\nAlternative Paths:\n";
+    pitch += "1. Security deposit-backed card with 80% of deposit as your credit limit\n";
+    pitch += "2. Starter business card with gradually increasing limits\n";
+    pitch += "3. Co-branded card with specialized benefits for your business category\n\n";
+    pitch += "Let's schedule a consultation to discuss which option best suits your business needs and growth objectives.";
+  }
+  
+  return pitch;
+};
+
 const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps) => {
   const [pitch, setPitch] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -46,61 +111,25 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
     try {
       setIsLoading(true);
       
-      const apiKey = localStorage.getItem('openAiApiKey');
-      if (!apiKey) {
+      // Generate pitch locally instead of API call
+      setTimeout(() => {
+        const generatedPitch = generateLocalPitch(merchantData, isEligible);
+        setPitch(generatedPitch);
         toast({
-          title: "API Key Required",
-          description: "Please add your OpenAI API key in the Upload Data tab",
-          variant: "destructive",
+          title: "Success",
+          description: "Sales pitch generated successfully",
         });
         setIsLoading(false);
-        return;
-      }
+      }, 1000); // Adding a small delay to simulate processing
       
-      const prompt = generatePrompt(merchantData, isEligible);
-      
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a professional sales expert who creates compelling, data-driven pitches.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 800,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate sales pitch');
-      }
-
-      const data = await response.json();
-      setPitch(data.choices[0].message.content);
-      toast({
-        title: "Success",
-        description: "Sales pitch generated successfully",
-      });
     } catch (error) {
       console.error('Error generating sales pitch:', error);
       toast({
         title: "Error",
-        description: "Failed to generate sales pitch. Please check your API key in the Upload Data tab and try again.",
+        description: "Failed to generate sales pitch. Please try again later.",
         variant: "destructive",
       });
       setPitch("Failed to generate sales pitch. Please try again later.");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -135,7 +164,7 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
             </div>
           ) : (
             <p className="text-gray-500 text-sm">
-              Click "Generate Pitch" to create a personalized sales pitch based on the merchant's profile and eligibility status. Make sure you've added your OpenAI API key in the Upload Data tab.
+              Click "Generate Pitch" to create a personalized sales pitch based on the merchant's profile and eligibility status.
             </p>
           )}
         </div>
