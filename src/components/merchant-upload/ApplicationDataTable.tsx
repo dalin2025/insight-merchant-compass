@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface ApplicationDataItem {
@@ -50,7 +51,7 @@ const ApplicationDataTable: React.FC<ApplicationDataTableProps> = ({ data }) => 
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">MID</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Bank Comments</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Submitted</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Application Date</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Under Review</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Bank Decision</th>
             </tr>

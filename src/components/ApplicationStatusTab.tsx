@@ -185,7 +185,7 @@ const ApplicationStatusTab = ({
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-gray-500">Application Date</p>
-                  <p className="text-sm font-medium">15 Apr 2025</p>
+                  <p className="text-sm font-medium">{submittedDate || "Not submitted"}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-gray-500">Requested Limit</p>
