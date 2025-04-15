@@ -2,8 +2,10 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { MerchantData } from "@/types/eligibility";
+import { useToast } from "@/hooks/use-toast";
 
 interface SalesPitchSectionProps {
   merchantData: MerchantData;
@@ -39,8 +41,19 @@ Maintain a professional and persuasive tone. Keep the response under 400 words.`
 const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps) => {
   const [pitch, setPitch] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [apiKey, setApiKey] = useState<string>("");
+  const { toast } = useToast();
 
   const generateSalesPitch = async () => {
+    if (!apiKey) {
+      toast({
+        title: "API Key Required",
+        description: "Please enter your Perplexity API key to generate a sales pitch",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsLoading(true);
       const prompt = generatePrompt(merchantData, isEligible);
@@ -48,7 +61,7 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
       const response = await fetch('https://api.perplexity.ai/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY || ''}`,
+          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -74,8 +87,17 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
 
       const data = await response.json();
       setPitch(data.choices[0].message.content);
+      toast({
+        title: "Success",
+        description: "Sales pitch generated successfully",
+      });
     } catch (error) {
       console.error('Error generating sales pitch:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate sales pitch. Please check your API key and try again.",
+        variant: "destructive",
+      });
       setPitch("Failed to generate sales pitch. Please try again later.");
     } finally {
       setIsLoading(false);
@@ -87,33 +109,45 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
       <CardHeader>
         <CardTitle className="text-lg flex items-center justify-between">
           <span>AI-Generated Sales Pitch</span>
-          <Button 
-            onClick={generateSalesPitch}
-            disabled={isLoading}
-            variant="outline"
-            size="sm"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              'Generate Pitch'
-            )}
-          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {pitch ? (
-          <div className="prose prose-sm max-w-none">
-            <div className="whitespace-pre-wrap">{pitch}</div>
+        <div className="space-y-4">
+          <div className="flex gap-4">
+            <Input
+              type="password"
+              placeholder="Enter your Perplexity API key"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              className="max-w-md"
+            />
+            <Button 
+              onClick={generateSalesPitch}
+              disabled={isLoading}
+              variant="outline"
+              size="sm"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                'Generate Pitch'
+              )}
+            </Button>
           </div>
-        ) : (
-          <p className="text-gray-500 text-sm">
-            Click the "Generate Pitch" button to create a personalized sales pitch based on the merchant's profile and eligibility status.
-          </p>
-        )}
+          
+          {pitch ? (
+            <div className="prose prose-sm max-w-none">
+              <div className="whitespace-pre-wrap">{pitch}</div>
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm">
+              Enter your Perplexity API key and click "Generate Pitch" to create a personalized sales pitch based on the merchant's profile and eligibility status.
+            </p>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
