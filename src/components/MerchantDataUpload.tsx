@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MerchantData } from '@/types/eligibility';
@@ -471,11 +470,17 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
     }
   };
   
-  const handleSaveData = () => {
-    localStorage.setItem("uploadedMerchantData", JSON.stringify(uploadedMerchants));
-    onMerchantDataSave(uploadedMerchants);
-    toast.success("Merchant data saved successfully!");
-    setDataSaved(true);
+  const handleSaveData = async () => {
+    try {
+      const { saveMerchantData } = await import('@/utils/databaseUtils');
+      await saveMerchantData(uploadedMerchants);
+      onMerchantDataSave(uploadedMerchants);
+      toast.success("Merchant data saved successfully!");
+      setDataSaved(true);
+    } catch (error) {
+      console.error("Error saving merchant data:", error);
+      toast.error("Failed to save merchant data. Please try again.");
+    }
   };
 
   const handleApplicationSaveData = () => {

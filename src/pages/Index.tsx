@@ -10,58 +10,51 @@ import MerchantSearchBar from "@/components/MerchantSearchBar";
 import MerchantDataUpload from "@/components/MerchantDataUpload";
 import { evaluateEligibility } from "@/utils/eligibilityUtils";
 import { MerchantData } from "@/types/eligibility";
-
-// Local storage key for storing merchant data
-const MERCHANT_DATA_STORAGE_KEY = "uploadedMerchantData";
+import { loadMerchantData, findMerchant } from "@/utils/databaseUtils";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("eligibility");
   const [merchantData, setMerchantData] = useState<MerchantData | null>(null);
   const [uploadedMerchants, setUploadedMerchants] = useState<MerchantData[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load saved merchant data from localStorage on component mount
+  // Load saved merchant data from database on component mount
   useEffect(() => {
-    const savedMerchants = localStorage.getItem(MERCHANT_DATA_STORAGE_KEY);
-    if (savedMerchants) {
+    const loadData = async () => {
       try {
-        const parsedData = JSON.parse(savedMerchants);
-        
-        // Ensure that the data is an array
-        if (Array.isArray(parsedData)) {
-          setUploadedMerchants(parsedData);
-          console.log("Loaded merchant data from localStorage:", parsedData.length, "merchants");
-        }
+        setIsLoading(true);
+        const merchants = await loadMerchantData();
+        setUploadedMerchants(merchants);
+        console.log("Loaded merchant data from database:", merchants.length, "merchants");
       } catch (error) {
-        console.error("Error loading saved merchant data", error);
+        console.error("Error loading merchant data:", error);
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+    
+    loadData();
   }, []);
 
-  const handleMerchantSearch = (term: string) => {
+  const handleMerchantSearch = async (term: string) => {
     setSearchTerm(term);
     if (term.trim() === "") {
       setMerchantData(null);
       return;
     }
     
-    const foundMerchant = uploadedMerchants.find(
-      m => m.mid.toLowerCase().includes(term.toLowerCase()) || 
-           (m.name && m.name.toLowerCase().includes(term.toLowerCase()))
-    );
-    
-    if (foundMerchant) {
+    try {
+      const foundMerchant = await findMerchant(term);
       setMerchantData(foundMerchant);
-    } else {
+    } catch (error) {
+      console.error("Error searching for merchant:", error);
       setMerchantData(null);
     }
   };
 
   const handleMerchantDataSave = (merchants: MerchantData[]) => {
     setUploadedMerchants(merchants);
-    
-    // Save to localStorage for data persistence
-    localStorage.setItem(MERCHANT_DATA_STORAGE_KEY, JSON.stringify(merchants));
   };
 
   const tabs = [
@@ -109,51 +102,59 @@ const Index = () => {
           />
           
           <div className="p-6">
-            {activeTab === "eligibility" && (
-              merchantData ? (
-                <EnhancedEligibilityTab eligibilityResult={evaluateEligibility(merchantData)} />
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">
-                    {searchTerm ? "No merchant found with this MID" : "Please search for a merchant by MID"}
-                  </p>
-                </div>
-              )
-            )}
-            
-            {activeTab === "application" && (
-              <ApplicationStatusTab 
-                status={merchantData?.application?.status || "not-started"}
-                bankComments={merchantData?.application?.bankComments || []}
-                hasData={merchantData !== null && merchantData.application !== undefined}
-                merchant={merchantData}
-              />
-            )}
-            
-            {activeTab === "spends" && (
-              <LiveSpendsTab 
-                totalSpend={merchantData?.spends?.totalSpend || "₹0"}
-                spendTrend={merchantData?.spends?.spendTrend || "null"}
-                monthlySpends={merchantData?.spends?.monthlySpends || []}
-                hasData={merchantData !== null && merchantData.spends !== undefined}
-              />
-            )}
-            
-            {activeTab === "warnings" && (
-              <EarlyWarningTab 
-                riskFlag={merchantData?.warnings?.riskFlag || "low"}
-                gmvDrop={merchantData?.warnings?.gmvDrop || 0}
-                spendsDrop={merchantData?.warnings?.spendsDrop || 0}
-                internalTriggers={merchantData?.warnings?.internalTriggers || []}
-                hasData={merchantData !== null && merchantData.warnings !== undefined}
-              />
-            )}
-            
-            {activeTab === "upload" && (
-              <MerchantDataUpload 
-                savedMerchants={uploadedMerchants}
-                onMerchantDataSave={handleMerchantDataSave}
-              />
+            {isLoading ? (
+              <div className="flex justify-center items-center py-10">
+                <div className="animate-pulse">Loading data...</div>
+              </div>
+            ) : (
+              <>
+                {activeTab === "eligibility" && (
+                  merchantData ? (
+                    <EnhancedEligibilityTab eligibilityResult={evaluateEligibility(merchantData)} />
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">
+                        {searchTerm ? "No merchant found with this MID" : "Please search for a merchant by MID"}
+                      </p>
+                    </div>
+                  )
+                )}
+                
+                {activeTab === "application" && (
+                  <ApplicationStatusTab 
+                    status={merchantData?.application?.status || "not-started"}
+                    bankComments={merchantData?.application?.bankComments || []}
+                    hasData={merchantData !== null && merchantData.application !== undefined}
+                    merchant={merchantData}
+                  />
+                )}
+                
+                {activeTab === "spends" && (
+                  <LiveSpendsTab 
+                    totalSpend={merchantData?.spends?.totalSpend || "₹0"}
+                    spendTrend={merchantData?.spends?.spendTrend || "null"}
+                    monthlySpends={merchantData?.spends?.monthlySpends || []}
+                    hasData={merchantData !== null && merchantData.spends !== undefined}
+                  />
+                )}
+                
+                {activeTab === "warnings" && (
+                  <EarlyWarningTab 
+                    riskFlag={merchantData?.warnings?.riskFlag || "low"}
+                    gmvDrop={merchantData?.warnings?.gmvDrop || 0}
+                    spendsDrop={merchantData?.warnings?.spendsDrop || 0}
+                    internalTriggers={merchantData?.warnings?.internalTriggers || []}
+                    hasData={merchantData !== null && merchantData.warnings !== undefined}
+                  />
+                )}
+                
+                {activeTab === "upload" && (
+                  <MerchantDataUpload 
+                    savedMerchants={uploadedMerchants}
+                    onMerchantDataSave={handleMerchantDataSave}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>
