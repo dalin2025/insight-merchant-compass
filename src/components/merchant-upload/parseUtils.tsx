@@ -71,9 +71,7 @@ export const parseWarningsCSV = (csvContent: string): any[] => {
   
   return lines.slice(1).filter(line => line.trim()).map(line => {
     const values = line.split(',').map(value => value.trim());
-    const data: Record<string, any> = {
-      internalTriggers: [] // Initialize with empty array
-    };
+    const data: Record<string, any> = {};
     
     // Map the standard warning fields
     data.mid = values[0] || '';

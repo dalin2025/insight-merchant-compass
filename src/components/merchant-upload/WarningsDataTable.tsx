@@ -1,19 +1,12 @@
 
 import React from 'react';
 
-interface TriggerItem {
-  name: string;
-  severity: "high" | "medium" | "low";
-  details: string;
-}
-
 interface WarningDataItem {
   mid: string;
   amgmv: number;
   amgmvAtIssuance: number;
   averageAmgmv: number;
   spendsDrop: number;
-  internalTriggers: TriggerItem[];
 }
 
 interface WarningsDataTableProps {
@@ -39,7 +32,6 @@ const WarningsDataTable: React.FC<WarningsDataTableProps> = ({ data }) => {
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">AMGMV at Issuance</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Average AMGMV</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Spends Drop %</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Internal Triggers</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -50,29 +42,6 @@ const WarningsDataTable: React.FC<WarningsDataTableProps> = ({ data }) => {
                 <td className="px-4 py-2 text-sm">₹{item.amgmvAtIssuance.toLocaleString()}</td>
                 <td className="px-4 py-2 text-sm">₹{item.averageAmgmv.toLocaleString()}</td>
                 <td className="px-4 py-2 text-sm">{item.spendsDrop}%</td>
-                <td className="px-4 py-2 text-sm">
-                  {item.internalTriggers && item.internalTriggers.length > 0 ? (
-                    <ul className="list-disc pl-4">
-                      {item.internalTriggers.map((trigger, i) => (
-                        <li key={i} className="mb-1">
-                          <div className="font-medium">{trigger.name}</div>
-                          <div className="text-xs">
-                            <span className={`px-1 rounded ${
-                              trigger.severity === "high" ? "bg-red-100 text-red-800" :
-                              trigger.severity === "medium" ? "bg-yellow-100 text-yellow-800" :
-                              "bg-green-100 text-green-800"
-                            }`}>
-                              {trigger.severity}
-                            </span>
-                            {" - "}{trigger.details}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    "No triggers"
-                  )}
-                </td>
               </tr>
             ))}
           </tbody>
@@ -83,3 +52,4 @@ const WarningsDataTable: React.FC<WarningsDataTableProps> = ({ data }) => {
 };
 
 export default WarningsDataTable;
+
