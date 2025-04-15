@@ -88,7 +88,7 @@ const WarningsTab: React.FC<WarningsTabProps> = ({
           </Button>
         </div>
         <div className="text-xs text-gray-500">
-          File must contain warning data with at least: mid, amgmv, amgmvAtIssuance, averageAmgmv, spendsDrop, internalTriggers (array)
+          CSV format must contain: mid, amgmv, amgmvAtIssuance, averageAmgmv, spendsDrop (in that order)
         </div>
         <div className="mt-4 flex justify-end">
           <Button 

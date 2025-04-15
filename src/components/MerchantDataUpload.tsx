@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MerchantData } from '@/types/eligibility';
@@ -158,7 +157,7 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
             validateAndUpdateSpendData(parseCSV(content, true));
             addFileToHistory(file, setSpendsFiles, type);
           } else if (type === "warnings") {
-            validateAndUpdateWarningData(parseCSV(content));
+            validateAndUpdateWarningData(parseCSV(content, false, true));
             addFileToHistory(file, setWarningsFiles, type);
           }
         } 

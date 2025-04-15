@@ -1,10 +1,13 @@
-
-export const parseCSV = (csvContent: string, isSpendData = false): any[] => {
+export const parseCSV = (csvContent: string, isSpendData = false, isWarningsData = false): any[] => {
   const lines = csvContent.split('\n');
   const headers = lines[0].split(',').map(header => header.trim());
   
   if (isSpendData) {
     return parseSimplifiedSpendCSV(csvContent);
+  }
+
+  if (isWarningsData) {
+    return parseWarningsCSV(csvContent);
   }
   
   return lines.slice(1).filter(line => line.trim()).map(line => {
@@ -58,6 +61,27 @@ export const parseSimplifiedSpendCSV = (csvContent: string): any[] => {
     }
     
     data.monthlySpends = monthlySpends;
+    return data;
+  });
+};
+
+export const parseWarningsCSV = (csvContent: string): any[] => {
+  const lines = csvContent.split('\n');
+  const headers = lines[0].split(',').map(header => header.trim());
+  
+  return lines.slice(1).filter(line => line.trim()).map(line => {
+    const values = line.split(',').map(value => value.trim());
+    const data: Record<string, any> = {
+      internalTriggers: [] // Initialize with empty array
+    };
+    
+    // Map the standard warning fields
+    data.mid = values[0] || '';
+    data.amgmv = parseFloat(values[1]) || 0;
+    data.amgmvAtIssuance = parseFloat(values[2]) || 0;
+    data.averageAmgmv = parseFloat(values[3]) || 0;
+    data.spendsDrop = parseFloat(values[4]) || 0;
+    
     return data;
   });
 };
