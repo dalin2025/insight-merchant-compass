@@ -166,6 +166,9 @@ const Index = () => {
                     bankComments={merchantData?.application?.bankComments || []}
                     hasData={merchantData !== null && merchantData.application !== undefined}
                     merchant={merchantData}
+                    submittedDate={merchantData?.application?.submittedDate}
+                    underReviewDate={merchantData?.application?.underReviewDate}
+                    bankDecisionDate={merchantData?.application?.bankDecisionDate}
                   />
                 )}
                 

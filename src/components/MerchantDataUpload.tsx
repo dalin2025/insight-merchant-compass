@@ -76,7 +76,10 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         .map(merchant => ({
           mid: merchant.mid,
           status: merchant.application?.status || "not-started",
-          bankComments: merchant.application?.bankComments || []
+          bankComments: merchant.application?.bankComments || [],
+          submittedDate: merchant.application?.submittedDate,
+          underReviewDate: merchant.application?.underReviewDate,
+          bankDecisionDate: merchant.application?.bankDecisionDate
         }));
       
       if (appData.length > 0) {
@@ -263,6 +266,9 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
       mid: string;
       status: string;
       bankComments?: string[];
+      submittedDate?: string;
+      underReviewDate?: string;
+      bankDecisionDate?: string;
     }> = [];
 
     applicationData.forEach(data => {
@@ -286,7 +292,10 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
       const validAppItem = {
         mid: data.mid,
         status: data.status || "not-started",
-        bankComments: Array.isArray(data.bankComments) ? data.bankComments : []
+        bankComments: Array.isArray(data.bankComments) ? data.bankComments : [],
+        submittedDate: data.submittedDate || undefined,
+        underReviewDate: data.underReviewDate || undefined,
+        bankDecisionDate: data.bankDecisionDate || undefined
       };
       
       validAppData.push(validAppItem);
@@ -295,7 +304,10 @@ const MerchantDataUpload = ({ savedMerchants, onMerchantDataSave }: MerchantData
         ...updatedMerchants[merchantIndex],
         application: {
           status: data.status || "not-started",
-          bankComments: Array.isArray(data.bankComments) ? data.bankComments : []
+          bankComments: Array.isArray(data.bankComments) ? data.bankComments : [],
+          submittedDate: data.submittedDate || undefined,
+          underReviewDate: data.underReviewDate || undefined,
+          bankDecisionDate: data.bankDecisionDate || undefined
         }
       };
       updatedCount++;
