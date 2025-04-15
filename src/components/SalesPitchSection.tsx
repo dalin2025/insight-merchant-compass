@@ -1,8 +1,6 @@
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { MerchantData } from "@/types/eligibility";
 import { useToast } from "@/hooks/use-toast";
@@ -41,39 +39,23 @@ Maintain a professional and persuasive tone. Keep the response under 400 words.`
 const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps) => {
   const [pitch, setPitch] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState<string>("");
   const { toast } = useToast();
 
-  // Load API key from local storage on component mount
-  useEffect(() => {
-    const storedApiKey = localStorage.getItem('openAiApiKey');
-    if (storedApiKey) {
-      setApiKey(storedApiKey);
-    }
-  }, []);
-
-  const saveApiKey = () => {
-    if (apiKey.trim()) {
-      localStorage.setItem('openAiApiKey', apiKey);
-      toast({
-        title: "API Key Saved",
-        description: "Your OpenAI API key has been securely stored locally.",
-      });
-    }
-  };
-
   const generateSalesPitch = async () => {
-    if (!apiKey) {
-      toast({
-        title: "API Key Required",
-        description: "Please enter your OpenAI API key to generate a sales pitch",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setIsLoading(true);
+      
+      const apiKey = localStorage.getItem('openAiApiKey');
+      if (!apiKey) {
+        toast({
+          title: "API Key Required",
+          description: "Please add your OpenAI API key in the Upload Data tab",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+      
       const prompt = generatePrompt(merchantData, isEligible);
       
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -113,7 +95,7 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
       console.error('Error generating sales pitch:', error);
       toast({
         title: "Error",
-        description: "Failed to generate sales pitch. Please check your API key and try again.",
+        description: "Failed to generate sales pitch. Please check your API key in the Upload Data tab and try again.",
         variant: "destructive",
       });
       setPitch("Failed to generate sales pitch. Please try again later.");
@@ -127,49 +109,32 @@ const SalesPitchSection = ({ merchantData, isEligible }: SalesPitchSectionProps)
       <CardHeader>
         <CardTitle className="text-lg flex items-center justify-between">
           <span>AI-Generated Sales Pitch</span>
+          <Button 
+            onClick={generateSalesPitch}
+            disabled={isLoading}
+            variant="outline"
+            size="sm"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              'Generate Pitch'
+            )}
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="flex gap-4 items-center">
-            <Input
-              type="password"
-              placeholder="Enter your OpenAI API key"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="max-w-md"
-            />
-            <Button 
-              onClick={saveApiKey}
-              variant="secondary"
-              size="sm"
-            >
-              Save Key
-            </Button>
-            <Button 
-              onClick={generateSalesPitch}
-              disabled={isLoading}
-              variant="outline"
-              size="sm"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                'Generate Pitch'
-              )}
-            </Button>
-          </div>
-          
           {pitch ? (
             <div className="prose prose-sm max-w-none">
               <div className="whitespace-pre-wrap">{pitch}</div>
             </div>
           ) : (
             <p className="text-gray-500 text-sm">
-              Enter your OpenAI API key, save it, and then click "Generate Pitch" to create a personalized sales pitch based on the merchant's profile and eligibility status.
+              Click "Generate Pitch" to create a personalized sales pitch based on the merchant's profile and eligibility status. Make sure you've added your OpenAI API key in the Upload Data tab.
             </p>
           )}
         </div>
