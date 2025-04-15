@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -39,6 +40,9 @@ const EligibilityTab = ({
     { month: 'Feb 2025', revenue: 4200000 },
     { month: 'Mar 2025', revenue: 4500000 },
   ];
+
+  // Formatter function for tooltip instead of line
+  const formatRevenue = (value: number) => `₹${value.toLocaleString()}`;
 
   return (
     <div className="space-y-6">
@@ -180,13 +184,12 @@ const EligibilityTab = ({
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip formatter={formatRevenue} />
                     <Line 
                       type="monotone" 
                       dataKey="revenue" 
                       stroke="#2563eb"
                       name="Revenue"
-                      formatter={(value) => `₹${(value as number).toLocaleString()}`}
                     />
                   </LineChart>
                 </ResponsiveContainer>
