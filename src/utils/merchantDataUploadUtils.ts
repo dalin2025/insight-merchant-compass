@@ -108,8 +108,8 @@ RZPM10098765,in-progress,"KYC documents verified successfully.,Business profile 
 };
 
 export const downloadWarningsTemplate = () => {
-  const content = `mid,riskFlag,gmvDrop,spendsDrop,internalTriggers
-RZPM10098765,medium,15,8,"[{""name"":""Delayed Payment"",""severity"":""high"",""details"":""2 payments delayed by more than 5 days in the last month""},{""name"":""Ticket Escalation"",""severity"":""low"",""details"":""1 support ticket escalated in the last 3 months""}]"`;
+  const content = `mid,gmvAtIssuance,amgmv,spends,averageAmgmv
+RZPM10098765,1500000,1800000,750000,1650000`;
   
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement("a");
